@@ -5218,7 +5218,7 @@
         }
 
         save();
-        saveToFirestore();
+        saveSharedPlans();
         closeAdminPlanModal();
         render();
         toast('План "'+name+'" добавлен');
@@ -5258,7 +5258,7 @@
         }
 
         save();
-        saveToFirestore();
+        saveSharedPlans();
         render();
         toast('План "'+planName+'" удалён');
     };
@@ -5319,7 +5319,7 @@
         }
 
         save();
-        saveToFirestore();
+        saveSharedPlans();
         closeAdminTaskModal();
 
         // Re-open the category modal to show updated list
@@ -5353,7 +5353,7 @@
 
         delete DB.progress[taskId];
         save();
-        saveToFirestore();
+        saveSharedPlans();
 
         // Re-open modal
         if (type === 'operational') {
@@ -7301,9 +7301,48 @@
     }
 
     // ========== FIRESTORE SYNC ==========
+    // ========== SHARED PLANS (admin → all users) ==========
+    function saveSharedPlans() {
+        if (!db || !isAdmin()) return;
+        try {
+            db.collection('config').doc('sharedPlans').set({
+                strategic: JSON.stringify(DB.strategic || []),
+                tactical: JSON.stringify(DB.tactical || []),
+                operational: JSON.stringify(DB.operational || []),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            console.log('Shared plans saved');
+        } catch(e) {
+            console.warn('Shared plans save error:', e);
+        }
+    }
+
+    function loadSharedPlans() {
+        if (!db) return Promise.resolve();
+        return db.collection('config').doc('sharedPlans').get().then(function(doc) {
+            if (doc.exists) {
+                var d = doc.data();
+                try {
+                    if (d.strategic) DB.strategic = JSON.parse(d.strategic);
+                    if (d.tactical) DB.tactical = JSON.parse(d.tactical);
+                    if (d.operational) DB.operational = JSON.parse(d.operational);
+                    console.log('Shared plans loaded');
+                } catch(e) {
+                    console.warn('Shared plans parse error:', e);
+                }
+                window._sharedPlansExist = true;
+            } else {
+                window._sharedPlansExist = false;
+            }
+        }).catch(function(err) {
+            console.warn('Shared plans load error:', err);
+        });
+    }
+
     function saveToFirestore() {
         if (!currentUser || isGuest || !db) return;
         try {
+            // User-specific data (progress, settings, calendar, etc.)
             db.collection('users').doc(currentUser.uid).set({
                 data: JSON.stringify(DB),
                 reset: localStorage.getItem('urru_reset') || '{}',
@@ -7321,13 +7360,29 @@
 
     function loadFromFirestore(uid) {
         if (!db) return;
-        db.collection('users').doc(uid).get().then(function(doc) {
-            if (doc.exists) {
+        // 1) Load shared plans first, then user data
+        loadSharedPlans().then(function() {
+            // 2) Load user-specific data (progress, settings)
+            return db.collection('users').doc(uid).get();
+        }).then(function(doc) {
+            if (doc && doc.exists) {
                 var d = doc.data();
                 try {
                     if (d.data) {
                         var cloudDB = JSON.parse(d.data);
+                        
+                        // Save shared plans if they were loaded from config/sharedPlans
+                        var sharedStrategic = window._sharedPlansExist ? DB.strategic : null;
+                        var sharedTactical = window._sharedPlansExist ? DB.tactical : null;
+                        var sharedOperational = window._sharedPlansExist ? DB.operational : null;
+                        
                         Object.assign(DB, cloudDB);
+                        
+                        // Override with shared plans (admin's version) if they exist
+                        if (sharedStrategic) DB.strategic = sharedStrategic;
+                        if (sharedTactical) DB.tactical = sharedTactical;
+                        if (sharedOperational) DB.operational = sharedOperational;
+                        
                         localStorage.setItem('urru', JSON.stringify(DB));
                     }
                     if (d.reset) {
@@ -7343,9 +7398,22 @@
                     loadUserSettings();
                     updateCounters();
                     toast('Данные загружены из облака ☁️', true);
+                    // If admin and shared plans don't exist yet — auto-push
+                    if (isAdmin() && !window._sharedPlansExist && DB.strategic) {
+                        saveSharedPlans();
+                        console.log('Admin: auto-pushed plans to shared');
+                    }
                 } catch(e) {
                     console.warn('Parse error:', e);
                 }
+            } else {
+                // No user doc yet — just render shared plans
+                localStorage.setItem('urru', JSON.stringify(DB));
+                checkAndResetProgress();
+                render();
+                renderWeekCalendar();
+                loadUserSettings();
+                updateCounters();
             }
         }).catch(function(err) {
             console.warn('Firestore load error:', err);
