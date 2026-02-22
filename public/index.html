@@ -3572,6 +3572,143 @@
         .task-delete-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
         .task-delete-btn:hover { background: #fee2e2; border-color: #fecaca; color: #dc2626; }
 
+        /* Dashboard drill-down RES card */
+        .res-card-clickable {
+            cursor: pointer !important;
+            transition: var(--transition);
+        }
+        .res-card-clickable:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+        .res-drill-section {
+            margin-bottom: 20px;
+        }
+        .res-drill-section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .res-drill-section-header h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .res-drill-section-header .res-drill-badge {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 600;
+            color: #fff;
+        }
+        .res-drill-cat {
+            padding: 10px 14px;
+            margin-bottom: 6px;
+            background: var(--bg-primary);
+            border-radius: var(--radius-sm);
+            border-left: 3px solid var(--border-color);
+        }
+        .res-drill-cat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+        .res-drill-cat-header span:first-child {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .res-drill-cat-header span:last-child {
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .res-drill-bar {
+            height: 4px;
+            background: var(--border-color);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 6px;
+        }
+        .res-drill-bar-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.5s;
+        }
+        .res-drill-tasks {
+            display: none;
+            padding-top: 6px;
+        }
+        .res-drill-cat.expanded .res-drill-tasks {
+            display: block;
+        }
+        .res-drill-task {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        .res-drill-task-icon {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 10px;
+        }
+        .res-drill-task-icon.done { background: #dcfce7; color: #16a34a; }
+        .res-drill-task-icon.pending { background: #fef3c7; color: #d97706; }
+        .res-drill-cat { cursor: pointer; }
+        .res-drill-cat:hover { background: var(--bg-hover); }
+
+        /* Normative admin delete btn */
+        .normative-card { position: relative; }
+        .normative-card-delete {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 28px;
+            height: 28px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: #fee2e2;
+            border: none;
+            border-radius: 6px;
+            color: #dc2626;
+            cursor: pointer;
+            z-index: 5;
+        }
+        .normative-card-delete svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; }
+        .normative-card:hover .normative-card-delete { display: flex; }
+        .normative-add-card {
+            border: 2px dashed var(--border-color);
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 140px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .normative-add-card:hover { border-color: var(--accent-purple); background: #faf5ff; }
+        .normative-add-card-inner {
+            text-align: center;
+            color: var(--text-muted);
+        }
+        .normative-add-card:hover .normative-add-card-inner { color: var(--accent-purple); }
+        .normative-add-card-inner svg {
+            width: 32px; height: 32px; stroke: currentColor; fill: none; stroke-width: 1.5; margin-bottom: 6px;
+        }
+        .normative-add-card-inner span { display: block; font-size: 13px; font-weight: 500; }
+
         /* Admin modal (add plan / add task) */
         .admin-modal-overlay {
             position: fixed;
@@ -3802,10 +3939,6 @@
                     <span id="settingsUserName">Настройки</span>
                 </button>
                 <div class="sidebar-footer-text">ПАО «Россети Юг»<br>«Кубаньэнерго»</div>
-                <button class="btn-load" id="btnLoad">
-                    <svg viewBox="0 0 24 24" width="18" height="18"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                    <span>Загрузить данные</span>
-                </button>
             </div>
         </aside>
 
@@ -4141,6 +4274,57 @@
         </div>
     </div>
     
+    <!-- Dashboard RES Drill-down Modal -->
+    <div class="category-modal" id="resDrillModal" onclick="if(event.target===this)closeResDrill()">
+        <div class="category-modal-content" style="max-width:800px">
+            <div class="category-modal-header">
+                <h2 id="resDrillTitle"></h2>
+                <button class="category-modal-close" onclick="closeResDrill()">×</button>
+            </div>
+            <div class="category-modal-body" id="resDrillBody"></div>
+        </div>
+    </div>
+
+    <!-- Admin: Add Normative Document Modal -->
+    <div class="admin-modal-overlay" id="adminNormModal" onclick="if(event.target===this)closeAdminNormModal()">
+        <div class="admin-modal-box">
+            <div class="admin-modal-box-header">
+                <h3>Добавить документ</h3>
+                <button class="admin-modal-box-close" onclick="closeAdminNormModal()">×</button>
+            </div>
+            <div class="admin-modal-box-body">
+                <div class="admin-form-group">
+                    <label>Номер приказа *</label>
+                    <input type="text" id="adminNormNum" placeholder="Например: 49">
+                </div>
+                <div class="admin-form-group">
+                    <label>Дата *</label>
+                    <input type="text" id="adminNormDate" placeholder="28.01.2021">
+                </div>
+                <div class="admin-form-group">
+                    <label>Краткое название *</label>
+                    <input type="text" id="adminNormName" placeholder="Методические указания по снижению потерь">
+                </div>
+                <div class="admin-form-group">
+                    <label>Полное название</label>
+                    <textarea id="adminNormFullName" placeholder="Полное название документа"></textarea>
+                </div>
+                <div class="admin-form-group">
+                    <label>Код документа</label>
+                    <input type="text" id="adminNormCode" placeholder="МУ ИСМ 80380011-ИА/Ф-4100 016-2021">
+                </div>
+                <div class="admin-form-group">
+                    <label>Ссылка на PDF (URL)</label>
+                    <input type="text" id="adminNormPdfUrl" placeholder="https://... или public/pdfs/doc.pdf">
+                </div>
+                <div class="admin-form-actions">
+                    <button onclick="closeAdminNormModal()">Отмена</button>
+                    <button class="btn-primary" onclick="saveAdminNormDoc()">Добавить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Attachments Modal -->
     <div class="modal-bg" id="attachmentsModal">
         <div class="modal attachments-modal">
@@ -4186,7 +4370,8 @@
         productionCalendar: null,
         birthdays: null,
         workTasks: null,
-        progress: {}
+        progress: {},
+        sharedNormDocs: null
     };
 
     // Load from localStorage
@@ -4806,7 +4991,7 @@
     }
 
     function renderEmpty(title) {
-        return '<div class="empty"><div class="empty-icon"></div><h3>'+title+'</h3><p>Загрузите CSV файл с данными</p><button class="btn btn-primary" style="margin-top:16px" onclick="document.getElementById(\'modal\').classList.add(\'show\')">Загрузить данные</button></div>';
+        return '<div class="empty"><div class="empty-icon"></div><h3>'+title+'</h3><p>Нет данных</p></div>';
     }
 
     function renderTask(t, showResp) {
@@ -5369,6 +5554,60 @@
     // Current modal context for admin
     var _adminModalCtx = { type: '', catIdx: '' };
 
+    // ========== NORMATIVE DOCS ADMIN ==========
+    window.openAdminNormModal = function() {
+        document.getElementById('adminNormNum').value = '';
+        document.getElementById('adminNormDate').value = '';
+        document.getElementById('adminNormName').value = '';
+        document.getElementById('adminNormFullName').value = '';
+        document.getElementById('adminNormCode').value = '';
+        document.getElementById('adminNormPdfUrl').value = '';
+        document.getElementById('adminNormModal').classList.add('show');
+        setTimeout(function(){ document.getElementById('adminNormNum').focus(); }, 100);
+    };
+
+    window.closeAdminNormModal = function() {
+        document.getElementById('adminNormModal').classList.remove('show');
+    };
+
+    window.saveAdminNormDoc = function() {
+        var num = document.getElementById('adminNormNum').value.trim();
+        var date = document.getElementById('adminNormDate').value.trim();
+        var name = document.getElementById('adminNormName').value.trim();
+        if (!num || !date || !name) {
+            if (!num) document.getElementById('adminNormNum').style.borderColor='#dc2626';
+            if (!date) document.getElementById('adminNormDate').style.borderColor='#dc2626';
+            if (!name) document.getElementById('adminNormName').style.borderColor='#dc2626';
+            return;
+        }
+        var fullName = document.getElementById('adminNormFullName').value.trim() || name;
+        var code = document.getElementById('adminNormCode').value.trim();
+        var pdfUrl = document.getElementById('adminNormPdfUrl').value.trim();
+
+        if (!DB.sharedNormDocs) DB.sharedNormDocs = [];
+        var doc = { num: num, date: date, name: name, fullName: fullName };
+        if (code) doc.code = code;
+        if (pdfUrl) doc.pdfUrl = pdfUrl;
+        DB.sharedNormDocs.push(doc);
+        
+        save();
+        saveSharedPlans();
+        closeAdminNormModal();
+        render();
+        toast('Документ №'+num+' добавлен');
+    };
+
+    window.deleteNormDoc = function(idx) {
+        if (!DB.sharedNormDocs || !DB.sharedNormDocs[idx]) return;
+        var name = DB.sharedNormDocs[idx].name;
+        if (!confirm('Удалить документ "'+name+'"?')) return;
+        DB.sharedNormDocs.splice(idx, 1);
+        save();
+        saveSharedPlans();
+        render();
+        toast('Документ удалён');
+    };
+
     function renderTerms() {
         // 20 технологических карт
         var techCards = [
@@ -5758,115 +5997,46 @@
     };
 
     function renderNormative() {
-        // Список нормативных документов
-        var normativeList = [
-            { 
-                num: '49', 
-                date: '28.01.2021',
-                name: 'Методические указания по снижению потерь', 
-                fullName: 'Методические указания для формирования программ мероприятий по снижению потерь электрической энергии',
-                code: 'МУ ИСМ 80380011-ИА/Ф-4100 016-2021'
-            },
-            { 
-                num: '55', 
-                date: '27.01.2020',
-                name: 'Рекомендации по нецелевому использованию', 
-                fullName: 'Рекомендации по взаимодействию ПАО «МРСК Юга» с потребителями электрической энергии, которые относятся к группе «Население» при выявлении факта нецелевого использования электрической энергии',
-                code: 'МР ИСМ 80380011-ИА/Ф-4100 009-2020'
-            },
-            { 
-                num: '56', 
-                date: '29.01.2019',
-                name: 'Порядок проверки структурных подразделений', 
-                fullName: 'Порядок организации работ по проверке деятельности структурных подразделений филиала ПАО «МРСК Юга» по направлению "реализация услуг и учёт электроэнергии"',
-                code: ''
-            },
-            { 
-                num: '102', 
-                date: '11.02.2020',
-                name: 'Методические указания по оценке эффективности', 
-                fullName: 'Методические указания по оценке плановой и фактической эффективности мероприятий по снижению потерь электроэнергии в ПАО «МРСК Юга»',
-                code: ''
-            },
-            { 
-                num: '179', 
-                date: '14.03.2019',
-                name: 'Положение по учёту пломбировочных устройств', 
-                fullName: 'Положение по учету и движению номерных одноразовых индикаторных пломбировочных устройств ПАО «МРСК Юга»',
-                code: ''
-            },
-            { 
-                num: '200', 
-                date: '28.03.2022',
-                name: 'Методика формирования плана работ по эксплуатации ПУ', 
-                fullName: 'Методика формирования плана работ по эксплуатации приборов учета электроэнергии потребителей, присоединенных к сетям филиалов ПАО «Россети Юг»',
-                code: ''
-            },
-            { 
-                num: '222', 
-                date: '09.04.2020',
-                name: 'Порядок компенсации расходов', 
-                fullName: 'Порядок компенсации со стороны ПАО «Россети Юг» фактических расходов собственника или иного законного владельца объектов электросетевого хозяйства на приобретение электрической энергии в целях компенсации потерь',
-                code: ''
-            },
-            { 
-                num: '355', 
-                date: '29.06.2022',
-                name: 'Положение о договорной работе', 
-                fullName: 'Положение о договорной работе по оказанию услуг по передаче',
-                code: '',
-                hasAttachments: true,
-                attachments: [
-                    { num: '1', name: 'Методика определения скрытого функционала приборов учета' },
-                    { num: '2', name: 'Положение об оказании услуг по передаче электрической энергии' },
-                    { num: '3', name: 'Методические указания по проведению сравнительного анализа (бенчмаркетинга) деятельности производственных отделений' }
-                ]
-            },
-            { 
-                num: '446', 
-                date: '10.08.2020',
-                name: 'Порядок отнесения на ОС ИСУЭ', 
-                fullName: 'Порядок отнесения на основные средства интеллектуальных систем учета электроэнергии',
-                code: ''
-            },
-            { 
-                num: '468', 
-                date: '19.08.2020',
-                name: 'Порядок установки ПУ по ФЗ-522', 
-                fullName: 'Порядок установки (замены) приборов учета электрической энергии во исполнение требований Федерального закона от 27.12.2018 №522-ФЗ',
-                code: ''
-            },
-            { 
-                num: '510', 
-                date: '03.09.2020',
-                name: 'Порядок контрольного снятия показаний', 
-                fullName: 'Порядок проведения контрольного снятия показаний с приборов учета электроэнергии у граждан-потребителей (физических лиц), у юридических и приравненных к ним лиц',
-                code: ''
-            },
-            { 
-                num: '594', 
-                date: '03.10.2023',
-                name: 'Регламент работы с дебиторской задолженностью', 
-                fullName: 'Регламент работы с дебиторской задолженностью за услуги по передаче электроэнергии, числящейся на балансе ПАО «Россети Юг»',
-                code: ''
-            }
+        // Default normative documents (can be overridden by shared docs from Firestore)
+        var normativeList = DB.sharedNormDocs || [
+            { num: '49', date: '28.01.2021', name: 'Методические указания по снижению потерь', fullName: 'Методические указания для формирования программ мероприятий по снижению потерь электрической энергии', code: 'МУ ИСМ 80380011-ИА/Ф-4100 016-2021' },
+            { num: '55', date: '27.01.2020', name: 'Рекомендации по нецелевому использованию', fullName: 'Рекомендации по взаимодействию ПАО «МРСК Юга» с потребителями электрической энергии, которые относятся к группе «Население» при выявлении факта нецелевого использования электрической энергии', code: 'МР ИСМ 80380011-ИА/Ф-4100 009-2020' },
+            { num: '56', date: '29.01.2019', name: 'Порядок проверки структурных подразделений', fullName: 'Порядок организации работ по проверке деятельности структурных подразделений филиала ПАО «МРСК Юга» по направлению "реализация услуг и учёт электроэнергии"', code: '' },
+            { num: '102', date: '11.02.2020', name: 'Методические указания по оценке эффективности', fullName: 'Методические указания по оценке плановой и фактической эффективности мероприятий по снижению потерь электроэнергии в ПАО «МРСК Юга»', code: '' },
+            { num: '179', date: '14.03.2019', name: 'Положение по учёту пломбировочных устройств', fullName: 'Положение по учету и движению номерных одноразовых индикаторных пломбировочных устройств ПАО «МРСК Юга»', code: '' },
+            { num: '200', date: '28.03.2022', name: 'Методика формирования плана работ по эксплуатации ПУ', fullName: 'Методика формирования плана работ по эксплуатации приборов учета электроэнергии потребителей, присоединенных к сетям филиалов ПАО «Россети Юг»', code: '' },
+            { num: '222', date: '09.04.2020', name: 'Порядок компенсации расходов', fullName: 'Порядок компенсации со стороны ПАО «Россети Юг» фактических расходов собственника или иного законного владельца объектов электросетевого хозяйства на приобретение электрической энергии в целях компенсации потерь', code: '' },
+            { num: '355', date: '29.06.2022', name: 'Положение о договорной работе', fullName: 'Положение о договорной работе по оказанию услуг по передаче', code: '', hasAttachments: true, attachments: [{ num: '1', name: 'Методика определения скрытого функционала приборов учета' }, { num: '2', name: 'Положение об оказании услуг по передаче электрической энергии' }, { num: '3', name: 'Методические указания по проведению сравнительного анализа (бенчмаркетинга) деятельности производственных отделений' }] },
+            { num: '446', date: '10.08.2020', name: 'Порядок отнесения на ОС ИСУЭ', fullName: 'Порядок отнесения на основные средства интеллектуальных систем учета электроэнергии', code: '' },
+            { num: '468', date: '19.08.2020', name: 'Порядок установки ПУ по ФЗ-522', fullName: 'Порядок установки (замены) приборов учета электрической энергии во исполнение требований Федерального закона от 27.12.2018 №522-ФЗ', code: '' },
+            { num: '510', date: '03.09.2020', name: 'Порядок контрольного снятия показаний', fullName: 'Порядок проведения контрольного снятия показаний с приборов учета электроэнергии у граждан-потребителей (физических лиц), у юридических и приравненных к ним лиц', code: '' },
+            { num: '594', date: '03.10.2023', name: 'Регламент работы с дебиторской задолженностью', fullName: 'Регламент работы с дебиторской задолженностью за услуги по передаче электроэнергии, числящейся на балансе ПАО «Россети Юг»', code: '' }
         ];
+
+        // Auto-save defaults to shared if admin and no shared docs yet
+        if (isAdmin() && !DB.sharedNormDocs) {
+            DB.sharedNormDocs = normativeList;
+            saveSharedPlans();
+        }
         
         var html = '<div class="page-header">' +
             '<div class="page-header-top">' +
                 '<div class="page-header-icon" style="background:var(--accent-purple)"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>' +
                 '<div class="page-header-title"><h1>Нормативные документы</h1></div>' +
             '</div>' +
-            '<p class="page-header-desc">Внутренние регламенты и методические указания ПАО «Россети Юг». Файлы PDF размещаются в папке <code>data/normative-pdf/</code></p>' +
+            '<p class="page-header-desc">Внутренние регламенты и методические указания ПАО «Россети Юг»</p>' +
         '</div>';
         
         html += '<div class="normative-grid">';
-        normativeList.forEach(function(doc) {
-            var onClick = doc.hasAttachments ? 
-                "openNormativeAttachments('"+doc.num+"', '"+doc.date+"', '"+doc.fullName.replace(/'/g, "\\'")+"')" : 
-                "openNormativePdf('"+doc.num+" от "+doc.date+"')";
+        normativeList.forEach(function(doc, idx) {
+            var onClick = doc.pdfUrl ? 
+                "window.open('"+doc.pdfUrl.replace(/'/g, "\\'")+"', '_blank')" :
+                doc.hasAttachments ? 
+                    "openNormativeAttachments('"+doc.num+"', '"+doc.date+"', '"+doc.fullName.replace(/'/g, "\\'")+"')" : 
+                    "openNormativePdf('"+doc.num+" от "+doc.date+"')";
             
             html += '<div class="normative-card" onclick="'+onClick+'">' +
+                (isAdmin() ? '<button class="normative-card-delete" onclick="event.stopPropagation();deleteNormDoc('+idx+')" title="Удалить документ"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>' : '') +
                 '<div class="normative-card-header">' +
                     '<div class="normative-card-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>' +
                     '<div class="normative-card-num">№'+doc.num+' от '+doc.date+'</div>' +
@@ -5875,10 +6045,22 @@
                     '<div class="normative-card-title">'+doc.name+'</div>' +
                     '<div class="normative-card-desc">'+doc.fullName+'</div>' +
                     (doc.code ? '<div class="normative-card-code">'+doc.code+'</div>' : '') +
-                    (doc.hasAttachments ? '<div class="normative-card-attachments"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg> 3 приложения</div>' : '') +
+                    (doc.pdfUrl ? '<div class="normative-card-attachments"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> PDF</div>' : '') +
+                    (doc.hasAttachments ? '<div class="normative-card-attachments"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg> '+(doc.attachments?doc.attachments.length:0)+' приложения</div>' : '') +
                 '</div>' +
             '</div>';
         });
+
+        // Admin add card
+        if (isAdmin()) {
+            html += '<div class="normative-add-card" onclick="openAdminNormModal()">' +
+                '<div class="normative-add-card-inner">' +
+                    '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>' +
+                    '<span>Добавить документ</span>' +
+                '</div>' +
+            '</div>';
+        }
+
         html += '</div>';
         
         return html;
@@ -6941,7 +7123,8 @@
         }
 
         // Modal
-        document.getElementById('btnLoad').onclick = function() { document.getElementById('modal').classList.add('show'); };
+        var _btnLoad = document.getElementById('btnLoad');
+        if (_btnLoad) _btnLoad.onclick = function() { document.getElementById('modal').classList.add('show'); };
         document.getElementById('modalClose').onclick = function() { document.getElementById('modal').classList.remove('show'); };
         document.getElementById('modalCancel').onclick = function() { document.getElementById('modal').classList.remove('show'); };
         document.getElementById('modal').onclick = function(e) { if (e.target.id === 'modal') e.target.classList.remove('show'); };
@@ -7305,12 +7488,14 @@
     function saveSharedPlans() {
         if (!db || !isAdmin()) return;
         try {
-            db.collection('config').doc('sharedPlans').set({
+            var data = {
                 strategic: JSON.stringify(DB.strategic || []),
                 tactical: JSON.stringify(DB.tactical || []),
                 operational: JSON.stringify(DB.operational || []),
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
+            };
+            if (DB.sharedNormDocs) data.normDocs = JSON.stringify(DB.sharedNormDocs);
+            db.collection('config').doc('sharedPlans').set(data, { merge: true });
             console.log('Shared plans saved');
         } catch(e) {
             console.warn('Shared plans save error:', e);
@@ -7326,6 +7511,7 @@
                     if (d.strategic) DB.strategic = JSON.parse(d.strategic);
                     if (d.tactical) DB.tactical = JSON.parse(d.tactical);
                     if (d.operational) DB.operational = JSON.parse(d.operational);
+                    if (d.normDocs) DB.sharedNormDocs = JSON.parse(d.normDocs);
                     console.log('Shared plans loaded');
                 } catch(e) {
                     console.warn('Shared plans parse error:', e);
@@ -7375,6 +7561,7 @@
                         var sharedStrategic = window._sharedPlansExist ? DB.strategic : null;
                         var sharedTactical = window._sharedPlansExist ? DB.tactical : null;
                         var sharedOperational = window._sharedPlansExist ? DB.operational : null;
+                        var sharedNormDocs = window._sharedPlansExist ? DB.sharedNormDocs : null;
                         
                         Object.assign(DB, cloudDB);
                         
@@ -7382,6 +7569,7 @@
                         if (sharedStrategic) DB.strategic = sharedStrategic;
                         if (sharedTactical) DB.tactical = sharedTactical;
                         if (sharedOperational) DB.operational = sharedOperational;
+                        if (sharedNormDocs) DB.sharedNormDocs = sharedNormDocs;
                         
                         localStorage.setItem('urru', JSON.stringify(DB));
                     }
@@ -7699,6 +7887,9 @@
     }, 500);
     
     // ========== DASHBOARD ==========
+    // Store dashboard users for drill-down
+    var _dashboardUsers = [];
+
     function renderDashboard() {
         var c = document.getElementById('content');
         if (!c) return;
@@ -7711,28 +7902,77 @@
         h += '<div id="dashboardContent" style="margin-top:24px"><div style="text-align:center;padding:40px;color:var(--text-muted)">Загрузка данных...</div></div>';
         c.innerHTML = h;
         if (!db) { document.getElementById('dashboardContent').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted)">Firebase не подключен</div>'; return; }
+
+        // Calculate totals from shared plans
+        var sTotal=0, tTotal=0, oTotal=0;
+        if (DB.strategic) DB.strategic.forEach(function(c){ sTotal += c.tasks.length; });
+        if (DB.tactical) DB.tactical.forEach(function(c){ tTotal += c.tasks.length; });
+        if (DB.operational) DB.operational.forEach(function(p){ p.sections.forEach(function(s){ oTotal += s.items.length; }); });
+
+        // Collect all task IDs per plan type
+        var strategicIds = [], tacticalIds = [], operationalIds = [];
+        if (DB.strategic) DB.strategic.forEach(function(cat){ cat.tasks.forEach(function(t){ strategicIds.push(t.id); }); });
+        if (DB.tactical) DB.tactical.forEach(function(cat){ cat.tasks.forEach(function(t){ tacticalIds.push(t.id); }); });
+        if (DB.operational) DB.operational.forEach(function(p){ p.sections.forEach(function(s){ s.items.forEach(function(i){ operationalIds.push(i.id); }); }); });
+
         db.collection('users').get().then(function(snap) {
             var users = [];
             snap.forEach(function(doc) {
                 var d = doc.data();
                 if (d.role === 'nachalnik_urru' && d.res) {
-                    var sD=0,sT=13, tD=0,tT=55, oD=0,oT=35;
-                    if (d.data) { try { var ud = JSON.parse(d.data); if (ud.progress) { for (var k in ud.progress) { if (!ud.progress[k]) continue; if (k.indexOf('\u0421-')===0) sD++; else if (k.indexOf('\u0422-')===0) tD++; else if (k.indexOf('\u041e-')===0) oD++; } } } catch(e) {} }
-                    users.push({ name: d.name||d.email||'\u2014', enterprise: d.enterprise||'\u2014', res: d.res||'\u2014', s:{d:sD,t:sT,p:sT?Math.round(sD/sT*100):0}, tc:{d:tD,t:tT,p:tT?Math.round(tD/tT*100):0}, o:{d:oD,t:oT,p:oT?Math.round(oD/oT*100):0}, total:sD+tD+oD, totalAll:sT+tT+oT });
+                    var progress = {};
+                    if (d.data) { try { var ud = JSON.parse(d.data); if (ud.progress) progress = ud.progress; } catch(e) {} }
+                    var sD=0, tD=0, oD=0;
+                    strategicIds.forEach(function(id){ if (progress[id]) sD++; });
+                    tacticalIds.forEach(function(id){ if (progress[id]) tD++; });
+                    operationalIds.forEach(function(id){ if (progress[id]) oD++; });
+                    
+                    // Store per-category breakdown
+                    var catBreakdown = { strategic: [], tactical: [], operational: [] };
+                    if (DB.strategic) DB.strategic.forEach(function(cat){
+                        var cd=0; cat.tasks.forEach(function(t){ if(progress[t.id]) cd++; });
+                        catBreakdown.strategic.push({ title: cat.title, done: cd, total: cat.tasks.length, tasks: cat.tasks.map(function(t){ return { title: t.title, done: !!progress[t.id] }; }) });
+                    });
+                    if (DB.tactical) DB.tactical.forEach(function(cat){
+                        var cd=0; cat.tasks.forEach(function(t){ if(progress[t.id]) cd++; });
+                        catBreakdown.tactical.push({ title: cat.title, done: cd, total: cat.tasks.length, tasks: cat.tasks.map(function(t){ return { title: t.title, done: !!progress[t.id] }; }) });
+                    });
+                    if (DB.operational) DB.operational.forEach(function(phase){
+                        phase.sections.forEach(function(s){
+                            var cd=0; s.items.forEach(function(i){ if(progress[i.id]) cd++; });
+                            catBreakdown.operational.push({ title: phase.title + ' → ' + s.title, done: cd, total: s.items.length, tasks: s.items.map(function(i){ return { title: i.title, done: !!progress[i.id] }; }) });
+                        });
+                    });
+
+                    var userSettings = {};
+                    if (d.userSettings) { try { userSettings = JSON.parse(d.userSettings); } catch(e){} }
+
+                    users.push({ 
+                        name: userSettings.name || d.email || '—', 
+                        enterprise: d.enterprise||'—', 
+                        res: d.res||'—',
+                        position: userSettings.position || 'Начальник УРРУ',
+                        s:{d:sD,t:sTotal,p:sTotal?Math.round(sD/sTotal*100):0}, 
+                        tc:{d:tD,t:tTotal,p:tTotal?Math.round(tD/tTotal*100):0}, 
+                        o:{d:oD,t:oTotal,p:oTotal?Math.round(oD/oTotal*100):0}, 
+                        total:sD+tD+oD, totalAll:sTotal+tTotal+oTotal,
+                        breakdown: catBreakdown
+                    });
                 }
             });
+            _dashboardUsers = users;
             var dc = document.getElementById('dashboardContent'); if (!dc) return;
             var n = users.length, out = '';
             var avgS = n?Math.round(users.reduce(function(a,u){return a+u.s.p},0)/n):0;
             var avgT = n?Math.round(users.reduce(function(a,u){return a+u.tc.p},0)/n):0;
             var avgO = n?Math.round(users.reduce(function(a,u){return a+u.o.p},0)/n):0;
             out += '<div class="overview-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:28px">';
-            out += '<div class="overview-card" style="cursor:default"><div class="overview-card-main"><div class="overview-card-icon purple">'+svgPeople+'</div><div class="overview-card-content"><h3 style="font-size:32px;margin-bottom:2px">'+n+'</h3><p style="margin:0">\u041d\u0430\u0447\u0430\u043b\u044c\u043d\u0438\u043a\u043e\u0432 \u0423\u0420\u0420\u0423</p></div></div></div>';
-            out += '<div class="overview-card" style="cursor:default"><div class="overview-card-main"><div class="overview-card-icon orange">'+svgS+'</div><div class="overview-card-content"><h3 style="font-size:32px;margin-bottom:2px">'+avgS+'%</h3><p style="margin:0">\u0421\u0442\u0440\u0430\u0442\u0435\u0433\u0438\u044f (\u0433\u043e\u0434)</p><div class="progress-bar"><div class="progress-fill" style="width:'+avgS+'%;background:linear-gradient(90deg,#f59e0b,#fbbf24)"></div></div></div></div></div>';
-            out += '<div class="overview-card" style="cursor:default"><div class="overview-card-main"><div class="overview-card-icon blue">'+svgT+'</div><div class="overview-card-content"><h3 style="font-size:32px;margin-bottom:2px">'+avgT+'%</h3><p style="margin:0">\u0422\u0430\u043a\u0442\u0438\u043a\u0430 (\u043c\u0435\u0441\u044f\u0446)</p><div class="progress-bar"><div class="progress-fill" style="width:'+avgT+'%;background:linear-gradient(90deg,#2563eb,#3b82f6)"></div></div></div></div></div>';
-            out += '<div class="overview-card" style="cursor:default"><div class="overview-card-main"><div class="overview-card-icon green">'+svgO+'</div><div class="overview-card-content"><h3 style="font-size:32px;margin-bottom:2px">'+avgO+'%</h3><p style="margin:0">\u041e\u043f\u0435\u0440\u0430\u0442\u0438\u0432\u043d\u044b\u0439 (\u0434\u0435\u043d\u044c)</p><div class="progress-bar"><div class="progress-fill" style="width:'+avgO+'%;background:linear-gradient(90deg,#16a34a,#22c55e)"></div></div></div></div></div>';
+            out += '<div class="overview-card" style="cursor:default"><div class="overview-card-main"><div class="overview-card-icon purple">'+svgPeople+'</div><div class="overview-card-content"><h3 style="font-size:32px;margin-bottom:2px">'+n+'</h3><p style="margin:0">Начальников УРРУ</p></div></div></div>';
+            out += '<div class="overview-card" style="cursor:default"><div class="overview-card-main"><div class="overview-card-icon orange">'+svgS+'</div><div class="overview-card-content"><h3 style="font-size:32px;margin-bottom:2px">'+avgS+'%</h3><p style="margin:0">Стратегия (год)</p><div class="progress-bar"><div class="progress-fill" style="width:'+avgS+'%;background:linear-gradient(90deg,#f59e0b,#fbbf24)"></div></div></div></div></div>';
+            out += '<div class="overview-card" style="cursor:default"><div class="overview-card-main"><div class="overview-card-icon blue">'+svgT+'</div><div class="overview-card-content"><h3 style="font-size:32px;margin-bottom:2px">'+avgT+'%</h3><p style="margin:0">Тактика (месяц)</p><div class="progress-bar"><div class="progress-fill" style="width:'+avgT+'%;background:linear-gradient(90deg,#2563eb,#3b82f6)"></div></div></div></div></div>';
+            out += '<div class="overview-card" style="cursor:default"><div class="overview-card-main"><div class="overview-card-icon green">'+svgO+'</div><div class="overview-card-content"><h3 style="font-size:32px;margin-bottom:2px">'+avgO+'%</h3><p style="margin:0">Оперативный (день)</p><div class="progress-bar"><div class="progress-fill" style="width:'+avgO+'%;background:linear-gradient(90deg,#16a34a,#22c55e)"></div></div></div></div></div>';
             out += '</div>';
-            if (!n) { out += '<div class="overview-card" style="text-align:center;padding:48px;cursor:default"><div class="overview-card-icon purple" style="margin:0 auto 16px;width:64px;height:64px">'+svgPeople+'</div><h3 style="color:var(--text-secondary)">\u041d\u0435\u0442 \u043d\u0430\u0447\u0430\u043b\u044c\u043d\u0438\u043a\u043e\u0432 \u0423\u0420\u0420\u0423</h3><p style="color:var(--text-muted)">\u0421\u043e\u0437\u0434\u0430\u0439\u0442\u0435 \u0443\u0447\u0451\u0442\u043a\u0438 \u0447\u0435\u0440\u0435\u0437 \u0410\u0434\u043c\u0438\u043d-\u043f\u0430\u043d\u0435\u043b\u044c</p></div>'; dc.innerHTML = out; return; }
+            if (!n) { out += '<div class="overview-card" style="text-align:center;padding:48px;cursor:default"><div class="overview-card-icon purple" style="margin:0 auto 16px;width:64px;height:64px">'+svgPeople+'</div><h3 style="color:var(--text-secondary)">Нет начальников УРРУ</h3><p style="color:var(--text-muted)">Создайте учётки через Админ-панель</p></div>'; dc.innerHTML = out; return; }
             var filtered = users;
             if (userRole==='zam_riru' && userEnterprise) filtered = users.filter(function(u){return u.enterprise===userEnterprise});
             var byEnt = {};
@@ -7755,11 +7995,14 @@
                 out += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border-color)">';
                 out += '<div style="display:flex;align-items:center;gap:10px"><div class="overview-card-icon blue" style="width:36px;height:36px"><svg viewBox="0 0 24 24" style="width:18px;height:18px"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg></div>';
                 out += '<h3 style="font-size:15px;font-weight:600">'+ent+'</h3></div>';
-                out += '<span class="page-header-badge" style="background:var(--accent-blue);font-size:11px">'+eu.length+' \u0420\u042d\u0421</span></div>';
+                out += '<span class="page-header-badge" style="background:var(--accent-blue);font-size:11px">'+eu.length+' РЭС</span></div>';
                 eu.sort(function(a,b){return (b.s.p+b.tc.p+b.o.p)-(a.s.p+a.tc.p+a.o.p)});
-                eu.forEach(function(u) {
-                    out += '<div style="margin-bottom:12px;padding:12px;background:var(--bg-hover);border-radius:var(--radius-sm)">';
-                    out += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span style="font-size:14px;font-weight:600;color:var(--text-primary)">'+u.res+'</span><span style="font-size:12px;color:var(--text-muted)">'+u.name+'</span></div>';
+                eu.forEach(function(u, uIdx) {
+                    var globalIdx = _dashboardUsers.indexOf(u);
+                    var totalPct = u.totalAll ? Math.round(u.total/u.totalAll*100) : 0;
+                    out += '<div class="res-card-clickable" style="margin-bottom:12px;padding:12px;background:var(--bg-hover);border-radius:var(--radius-sm)" onclick="openResDrill('+globalIdx+')">';
+                    out += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><span style="font-size:14px;font-weight:600;color:var(--text-primary)">'+u.res+'</span><span style="font-size:12px;font-weight:600;color:var(--accent-blue)">'+totalPct+'% общий →</span></div>';
+                    out += '<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">'+u.name+' • '+u.position+'</div>';
                     out += '<div style="display:flex;gap:10px">';
                     out += miniBar(si,'#fef3c7;color:#d97706','linear-gradient(90deg,#f59e0b,#fbbf24)',u.s.p,u.s.d,u.s.t);
                     out += miniBar(ti,'#dbeafe;color:#2563eb','linear-gradient(90deg,#2563eb,#3b82f6)',u.tc.p,u.tc.d,u.tc.t);
@@ -7770,8 +8013,57 @@
             });
             out += '</div>';
             dc.innerHTML = out;
-        }).catch(function(err) { var dc = document.getElementById('dashboardContent'); if (dc) dc.innerHTML = '<div class="overview-card" style="text-align:center;padding:40px;cursor:default;color:var(--accent-red)">\u041e\u0448\u0438\u0431\u043a\u0430: '+err.message+'</div>'; });
+        }).catch(function(err) { var dc = document.getElementById('dashboardContent'); if (dc) dc.innerHTML = '<div class="overview-card" style="text-align:center;padding:40px;cursor:default;color:var(--accent-red)">Ошибка: '+err.message+'</div>'; });
     }
+
+    // Dashboard drill-down
+    window.openResDrill = function(userIdx) {
+        var u = _dashboardUsers[userIdx];
+        if (!u) return;
+        document.getElementById('resDrillTitle').textContent = u.res + ' — ' + u.name;
+        
+        var html = '';
+        var totalPct = u.totalAll ? Math.round(u.total/u.totalAll*100) : 0;
+        html += '<div style="display:flex;gap:12px;margin-bottom:20px;padding:16px;background:var(--bg-primary);border-radius:var(--radius);align-items:center">';
+        html += '<div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--accent-blue),var(--accent-purple));display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:700;flex-shrink:0">'+totalPct+'%</div>';
+        html += '<div><div style="font-size:16px;font-weight:600">'+u.name+'</div><div style="font-size:13px;color:var(--text-muted)">'+u.position+' • '+u.enterprise+' • '+u.res+'</div>';
+        html += '<div style="margin-top:6px;font-size:13px"><span style="color:var(--accent-green);font-weight:600">'+u.total+'</span> из <span style="font-weight:600">'+u.totalAll+'</span> задач выполнено</div>';
+        html += '</div></div>';
+
+        function renderDrillSection(title, color, gradient, items) {
+            if (!items.length) return '';
+            var totalD=0, totalT=0;
+            items.forEach(function(c){ totalD+=c.done; totalT+=c.total; });
+            var pct = totalT ? Math.round(totalD/totalT*100) : 0;
+            var s = '<div class="res-drill-section">';
+            s += '<div class="res-drill-section-header"><h4>'+title+'</h4><span class="res-drill-badge" style="background:'+color+'">'+pct+'% ('+totalD+'/'+totalT+')</span></div>';
+            items.forEach(function(cat, catIdx) {
+                var cpct = cat.total ? Math.round(cat.done/cat.total*100) : 0;
+                var borderColor = cpct === 100 ? '#22c55e' : cpct > 50 ? '#f59e0b' : cpct > 0 ? '#3b82f6' : 'var(--border-color)';
+                s += '<div class="res-drill-cat" style="border-left-color:'+borderColor+'" onclick="this.classList.toggle(\'expanded\')">';
+                s += '<div class="res-drill-cat-header"><span>'+cat.title+'</span><span style="color:'+(cpct===100?'#16a34a':cpct>0?'#d97706':'var(--text-muted)')+'">'+cat.done+'/'+cat.total+' ('+cpct+'%)</span></div>';
+                s += '<div class="res-drill-bar"><div class="res-drill-bar-fill" style="width:'+cpct+'%;background:'+gradient+'"></div></div>';
+                s += '<div class="res-drill-tasks">';
+                cat.tasks.forEach(function(t) {
+                    s += '<div class="res-drill-task"><span class="res-drill-task-icon '+(t.done?'done':'pending')+'">'+(t.done?'✓':'○')+'</span><span style="'+(t.done?'text-decoration:line-through;color:var(--text-muted)':'')+'">'+t.title+'</span></div>';
+                });
+                s += '</div></div>';
+            });
+            s += '</div>';
+            return s;
+        }
+
+        html += renderDrillSection('Стратегический план (Год)', '#f59e0b', 'linear-gradient(90deg,#f59e0b,#fbbf24)', u.breakdown.strategic);
+        html += renderDrillSection('Тактический план (Месяц)', '#2563eb', 'linear-gradient(90deg,#2563eb,#3b82f6)', u.breakdown.tactical);
+        html += renderDrillSection('Оперативный план (День)', '#16a34a', 'linear-gradient(90deg,#16a34a,#22c55e)', u.breakdown.operational);
+        
+        document.getElementById('resDrillBody').innerHTML = html;
+        document.getElementById('resDrillModal').classList.add('show');
+    };
+
+    window.closeResDrill = function() {
+        document.getElementById('resDrillModal').classList.remove('show');
+    };
 
     // ========== ADMIN PANEL (SuperAdmin only) ==========
     function renderAdminPanel() {
