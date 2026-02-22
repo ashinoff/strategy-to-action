@@ -3709,6 +3709,47 @@
         }
         .normative-add-card-inner span { display: block; font-size: 13px; font-weight: 500; }
 
+        /* Law card admin */
+        .law-card { position: relative; }
+        .law-card-delete {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 28px;
+            height: 28px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: #fee2e2;
+            border: none;
+            border-radius: 6px;
+            color: #dc2626;
+            cursor: pointer;
+            z-index: 5;
+        }
+        .law-card-delete svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; }
+        .law-card:hover .law-card-delete { display: flex; }
+        .law-add-card {
+            border: 2px dashed var(--border-color);
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .law-add-card:hover { border-color: #dc2626; background: #fef2f2; }
+        .law-add-card-inner {
+            text-align: center;
+            color: var(--text-muted);
+        }
+        .law-add-card:hover .law-add-card-inner { color: #dc2626; }
+        .law-add-card-inner svg {
+            width: 32px; height: 32px; stroke: currentColor; fill: none; stroke-width: 1.5; margin-bottom: 6px;
+        }
+        .law-add-card-inner span { display: block; font-size: 13px; font-weight: 500; }
+
         /* Admin modal (add plan / add task) */
         .admin-modal-overlay {
             position: fixed;
@@ -4315,11 +4356,47 @@
                 </div>
                 <div class="admin-form-group">
                     <label>Ссылка на PDF (URL)</label>
-                    <input type="text" id="adminNormPdfUrl" placeholder="https://... или public/pdfs/doc.pdf">
+                    <input type="text" id="adminNormPdfUrl" placeholder="pdfs/название.pdf">
                 </div>
                 <div class="admin-form-actions">
                     <button onclick="closeAdminNormModal()">Отмена</button>
                     <button class="btn-primary" onclick="saveAdminNormDoc()">Добавить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin: Add Law Document Modal -->
+    <div class="admin-modal-overlay" id="adminLawModal" onclick="if(event.target===this)closeAdminLawModal()">
+        <div class="admin-modal-box">
+            <div class="admin-modal-box-header">
+                <h3>Добавить законодательный акт</h3>
+                <button class="admin-modal-box-close" onclick="closeAdminLawModal()">×</button>
+            </div>
+            <div class="admin-modal-box-body">
+                <div class="admin-form-group">
+                    <label>Номер *</label>
+                    <input type="text" id="adminLawNum" placeholder="442">
+                </div>
+                <div class="admin-form-group">
+                    <label>Краткое название *</label>
+                    <input type="text" id="adminLawName" placeholder="ППРФ 442 или ФЗ-522">
+                </div>
+                <div class="admin-form-group">
+                    <label>Полное название *</label>
+                    <input type="text" id="adminLawFullName" placeholder="Постановление Правительства РФ от...">
+                </div>
+                <div class="admin-form-group">
+                    <label>Описание</label>
+                    <textarea id="adminLawDesc" placeholder="О чём документ"></textarea>
+                </div>
+                <div class="admin-form-group">
+                    <label>Ссылка на PDF (URL)</label>
+                    <input type="text" id="adminLawPdfUrl" placeholder="pdfs/название.pdf">
+                </div>
+                <div class="admin-form-actions">
+                    <button onclick="closeAdminLawModal()">Отмена</button>
+                    <button class="btn-primary" onclick="saveAdminLawDoc()">Добавить</button>
                 </div>
             </div>
         </div>
@@ -4371,7 +4448,8 @@
         birthdays: null,
         workTasks: null,
         progress: {},
-        sharedNormDocs: null
+        sharedNormDocs: null,
+        sharedLawsDocs: null
     };
 
     // Load from localStorage
@@ -5608,6 +5686,57 @@
         toast('Документ удалён');
     };
 
+    // ========== LAWS DOCS ADMIN ==========
+    window.openAdminLawModal = function() {
+        document.getElementById('adminLawNum').value = '';
+        document.getElementById('adminLawName').value = '';
+        document.getElementById('adminLawFullName').value = '';
+        document.getElementById('adminLawDesc').value = '';
+        document.getElementById('adminLawPdfUrl').value = '';
+        document.getElementById('adminLawModal').classList.add('show');
+        setTimeout(function(){ document.getElementById('adminLawNum').focus(); }, 100);
+    };
+
+    window.closeAdminLawModal = function() {
+        document.getElementById('adminLawModal').classList.remove('show');
+    };
+
+    window.saveAdminLawDoc = function() {
+        var num = document.getElementById('adminLawNum').value.trim();
+        var name = document.getElementById('adminLawName').value.trim();
+        var fullName = document.getElementById('adminLawFullName').value.trim();
+        if (!num || !name || !fullName) {
+            if (!num) document.getElementById('adminLawNum').style.borderColor='#dc2626';
+            if (!name) document.getElementById('adminLawName').style.borderColor='#dc2626';
+            if (!fullName) document.getElementById('adminLawFullName').style.borderColor='#dc2626';
+            return;
+        }
+        var desc = document.getElementById('adminLawDesc').value.trim();
+        var pdfUrl = document.getElementById('adminLawPdfUrl').value.trim();
+
+        if (!DB.sharedLawsDocs) DB.sharedLawsDocs = [];
+        var doc = { num: num, name: name, fullName: fullName, desc: desc || '' };
+        if (pdfUrl) doc.pdfUrl = pdfUrl;
+        DB.sharedLawsDocs.push(doc);
+        
+        save();
+        saveSharedPlans();
+        closeAdminLawModal();
+        render();
+        toast('Акт "'+name+'" добавлен');
+    };
+
+    window.deleteLawDoc = function(idx) {
+        if (!DB.sharedLawsDocs || !DB.sharedLawsDocs[idx]) return;
+        var name = DB.sharedLawsDocs[idx].name;
+        if (!confirm('Удалить "'+name+'"?')) return;
+        DB.sharedLawsDocs.splice(idx, 1);
+        save();
+        saveSharedPlans();
+        render();
+        toast('Акт удалён');
+    };
+
     function renderTerms() {
         // 20 технологических карт
         var techCards = [
@@ -6124,8 +6253,7 @@
     }
     
     function renderLaws() {
-        // Встроенный список законодательных актов
-        var lawsList = [
+        var lawsList = DB.sharedLawsDocs || [
             { num: '442', name: 'ППРФ 442', fullName: 'Постановление Правительства РФ от 04.05.2012 № 442', desc: 'О функционировании розничных рынков электрической энергии, полном и (или) частичном ограничении режима потребления электрической энергии' },
             { num: '890', name: 'ППРФ 890', fullName: 'Постановление Правительства РФ от 06.05.2011 № 354', desc: 'О предоставлении коммунальных услуг собственникам и пользователям помещений в многоквартирных домах и жилых домов' },
             { num: '861', name: 'ППРФ 861', fullName: 'Постановление Правительства РФ от 27.12.2004 № 861', desc: 'Об утверждении Правил недискриминационного доступа к услугам по передаче электрической энергии' },
@@ -6136,106 +6264,55 @@
             { num: '261', name: 'ФЗ-261', fullName: 'Федеральный закон от 23.11.2009 № 261-ФЗ', desc: 'Об энергосбережении и о повышении энергетической эффективности' },
             { num: '102', name: 'ФЗ-102', fullName: 'Федеральный закон от 26.06.2008 № 102-ФЗ', desc: 'Об обеспечении единства измерений' }
         ];
+
+        if (isAdmin() && !DB.sharedLawsDocs) {
+            DB.sharedLawsDocs = lawsList;
+            saveSharedPlans();
+        }
         
         var html = '<div class="page-header">' +
             '<div class="page-header-top">' +
                 '<div class="page-header-icon" style="background:#dc2626"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>' +
                 '<div class="page-header-title"><h1>Законодательные акты</h1></div>' +
             '</div>' +
-            '<p class="page-header-desc">Федеральные законы и постановления Правительства РФ в сфере электроэнергетики. Файлы PDF размещаются в папке <code>data/laws/</code></p>' +
+            '<p class="page-header-desc">Федеральные законы и постановления Правительства РФ в сфере электроэнергетики</p>' +
         '</div>';
         
         html += '<div class="laws-grid">';
-        lawsList.forEach(function(law) {
-            html += '<div class="law-card" onclick="openLawPdf(\''+law.num+'\')">' +
+        lawsList.forEach(function(law, idx) {
+            var onClick = law.pdfUrl ? 
+                "window.open('"+law.pdfUrl.replace(/'/g, "\\'")+"', '_blank')" :
+                "openLawPdf('"+law.num+"')";
+
+            html += '<div class="law-card" onclick="'+onClick+'">' +
+                (isAdmin() ? '<button class="law-card-delete" onclick="event.stopPropagation();deleteLawDoc('+idx+')" title="Удалить"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>' : '') +
                 '<div class="law-card-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>' +
                 '<div class="law-card-content">' +
                     '<div class="law-card-num">'+law.name+'</div>' +
                     '<div class="law-card-title">'+law.fullName+'</div>' +
                     '<div class="law-card-desc">'+law.desc+'</div>' +
+                    (law.pdfUrl ? '<div style="margin-top:6px;font-size:11px;color:var(--accent-blue);display:flex;align-items:center;gap:4px"><svg viewBox="0 0 24 24" width="12" height="12" style="stroke:currentColor;fill:none;stroke-width:2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>PDF</div>' : '') +
                 '</div>' +
             '</div>';
         });
-        html += '</div>';
-        
-        // Загруженные вручную PDF
-        if (DB.laws && DB.laws.length) {
-            html += '<h3 class="section-title">Загруженные документы</h3>';
-            html += '<div class="laws-list">';
-            DB.laws.forEach(function(law, idx) {
-                html += '<div class="law-item">' +
-                    '<div class="law-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>' +
-                    '<div class="law-info">' +
-                        '<h4>'+law.name+'</h4>' +
-                        '<p>Загружен: '+law.date+'</p>' +
-                    '</div>' +
-                    '<button class="btn" onclick="viewLaw('+idx+')">Открыть</button>' +
-                    '<button class="btn btn-delete" onclick="deleteLaw('+idx+')">×</button>' +
-                '</div>';
-            });
-            html += '</div>';
+
+        if (isAdmin()) {
+            html += '<div class="law-add-card" onclick="openAdminLawModal()">' +
+                '<div class="law-add-card-inner">' +
+                    '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>' +
+                    '<span>Добавить акт</span>' +
+                '</div>' +
+            '</div>';
         }
-        
-        html += '<div class="laws-upload">' +
-            '<div class="laws-upload-area" onclick="document.getElementById(\'lawsFile\').click()">' +
-                '<svg viewBox="0 0 24 24" width="32" height="32"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>' +
-                '<p>Загрузить дополнительный документ (PDF)</p>' +
-            '</div>' +
-            '<input type="file" id="lawsFile" accept=".pdf" onchange="uploadLaw(this)" style="display:none">' +
-        '</div>';
+
+        html += '</div>';
         
         return html;
     }
     
     window.openLawPdf = function(num) {
-        // Открываем PDF из папки data/laws/
-        var pdfPath = 'data/laws/' + num + '.pdf';
-        
-        // Проверяем, есть ли файл (открываем в новой вкладке)
-        var win = window.open(pdfPath, '_blank');
-        
-        // Если файл не найден, показываем сообщение
-        setTimeout(function() {
-            if (!win || win.closed) {
-                toast('Файл ' + num + '.pdf не найден в папке data/laws/', false);
-            }
-        }, 1000);
-    };
-    
-    window.uploadLaw = function(input) {
-        var file = input.files[0];
-        if (!file) return;
-        
-        var reader = new FileReader();
-        reader.onload = function(e) {
-            if (!DB.laws) DB.laws = [];
-            DB.laws.push({
-                name: file.name.replace('.pdf', ''),
-                date: new Date().toLocaleDateString('ru-RU'),
-                data: e.target.result
-            });
-            save();
-            render();
-            toast('Документ загружен!', true);
-        };
-        reader.readAsDataURL(file);
-    };
-    
-    window.viewLaw = function(idx) {
-        var law = DB.laws[idx];
-        if (law && law.data) {
-            var win = window.open();
-            win.document.write('<iframe src="'+law.data+'" style="width:100%;height:100%;border:none;"></iframe>');
-        }
-    };
-    
-    window.deleteLaw = function(idx) {
-        if (confirm('Удалить документ?')) {
-            DB.laws.splice(idx, 1);
-            save();
-            render();
-            toast('Документ удалён', true);
-        }
+        var pdfPath = 'pdfs/' + num + '.pdf';
+        window.open(pdfPath, '_blank');
     };
     
     // ========== CALENDAR ==========
@@ -7495,6 +7572,7 @@
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
             if (DB.sharedNormDocs) data.normDocs = JSON.stringify(DB.sharedNormDocs);
+            if (DB.sharedLawsDocs) data.lawsDocs = JSON.stringify(DB.sharedLawsDocs);
             db.collection('config').doc('sharedPlans').set(data, { merge: true });
             console.log('Shared plans saved');
         } catch(e) {
@@ -7512,6 +7590,7 @@
                     if (d.tactical) DB.tactical = JSON.parse(d.tactical);
                     if (d.operational) DB.operational = JSON.parse(d.operational);
                     if (d.normDocs) DB.sharedNormDocs = JSON.parse(d.normDocs);
+                    if (d.lawsDocs) DB.sharedLawsDocs = JSON.parse(d.lawsDocs);
                     console.log('Shared plans loaded');
                 } catch(e) {
                     console.warn('Shared plans parse error:', e);
@@ -7562,6 +7641,7 @@
                         var sharedTactical = window._sharedPlansExist ? DB.tactical : null;
                         var sharedOperational = window._sharedPlansExist ? DB.operational : null;
                         var sharedNormDocs = window._sharedPlansExist ? DB.sharedNormDocs : null;
+                        var sharedLawsDocs = window._sharedPlansExist ? DB.sharedLawsDocs : null;
                         
                         Object.assign(DB, cloudDB);
                         
@@ -7570,6 +7650,7 @@
                         if (sharedTactical) DB.tactical = sharedTactical;
                         if (sharedOperational) DB.operational = sharedOperational;
                         if (sharedNormDocs) DB.sharedNormDocs = sharedNormDocs;
+                        if (sharedLawsDocs) DB.sharedLawsDocs = sharedLawsDocs;
                         
                         localStorage.setItem('urru', JSON.stringify(DB));
                     }
