@@ -4104,13 +4104,13 @@
                             </div>
                         </div>
                         <div class="notification-wrapper">
-                            <button class="btn-notification work" id="btnNotificationWork" onclick="toggleNotifications('work')" title="Рабочие задачи">
+                            <button class="btn-notification work" id="btnNotificationWork" onclick="toggleNotifications('work')" title="Задачи">
                                 <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                                 <span class="notification-badge" id="notificationBadgeWork">0</span>
                             </button>
                             <div class="notification-dropdown" id="notificationDropdownWork">
                                 <div class="notification-header work">
-                                    <h4>Рабочие задачи</h4>
+                                    <h4>Задачи</h4>
                                     <span id="notificationDateWork"></span>
                                 </div>
                                 <div class="notification-list" id="notificationListWork"></div>
@@ -6421,7 +6421,7 @@
     var calendarDate = new Date();
     var weekStart = getMonday(new Date());
     
-    // Производственный календарь (постоянные события)
+    // Производственный календарь РФ (праздники)
     var productionCalendar = [
         { date: '01-01', name: 'Новый год', type: 'holiday' },
         { date: '01-02', name: 'Новогодние каникулы', type: 'holiday' },
@@ -6439,37 +6439,6 @@
         { date: '11-04', name: 'День народного единства', type: 'holiday' },
         { date: '12-22', name: 'День энергетика', type: 'professional' }
     ];
-    
-    // Встроенные рабочие задачи (цикличные)
-    var defaultWorkTasks = [
-        // Январские задачи
-        { type: 'date', rule: 'fixed', month: '1', days: '3,4,5,6,7', name: 'Информобмен с ГП', desc: 'Согласно согласованных графиков', color: 'blue' },
-        { type: 'date', rule: 'fixed', month: '1', days: '8,9,10', name: 'Сверка и корректировка данных с ГП', desc: 'Работа с расхождениями', color: 'blue' },
-        { type: 'date', rule: 'fixed', month: '1', days: '11', name: 'Завершение сверки с ГП', desc: 'Уточнение разногласий и оспариваемого объёма', color: 'blue' },
-        { type: 'date', rule: 'fixed', month: '1', days: '24,25', name: 'Передать показания ФЛ', desc: 'Физические лица и приравненные к ним категории населения', color: 'green' },
-        // Передать график проверки (25 числа каждого месяца)
-        { type: 'date', rule: 'fixed', month: '1', days: '25', name: 'Передать график проверки на февраль', desc: 'Плановые проверки следующего месяца', color: 'orange' },
-        { type: 'date', rule: 'fixed', month: '2', days: '25', name: 'Передать график проверки на март', desc: 'Плановые проверки следующего месяца', color: 'orange' },
-        { type: 'date', rule: 'fixed', month: '3', days: '25', name: 'Передать график проверки на апрель', desc: 'Плановые проверки следующего месяца', color: 'orange' },
-        { type: 'date', rule: 'fixed', month: '4', days: '25', name: 'Передать график проверки на май', desc: 'Плановые проверки следующего месяца', color: 'orange' },
-        { type: 'date', rule: 'fixed', month: '5', days: '25', name: 'Передать график проверки на июнь', desc: 'Плановые проверки следующего месяца', color: 'orange' },
-        { type: 'date', rule: 'fixed', month: '6', days: '25', name: 'Передать график проверки на июль', desc: 'Плановые проверки следующего месяца', color: 'orange' },
-        { type: 'date', rule: 'fixed', month: '7', days: '25', name: 'Передать график проверки на август', desc: 'Плановые проверки следующего месяца', color: 'orange' },
-        { type: 'date', rule: 'fixed', month: '8', days: '25', name: 'Передать график проверки на сентябрь', desc: 'Плановые проверки следующего месяца', color: 'orange' },
-        { type: 'date', rule: 'fixed', month: '9', days: '25', name: 'Передать график проверки на октябрь', desc: 'Плановые проверки следующего месяца', color: 'orange' },
-        { type: 'date', rule: 'fixed', month: '10', days: '25', name: 'Передать график проверки на ноябрь', desc: 'Плановые проверки следующего месяца', color: 'orange' },
-        { type: 'date', rule: 'fixed', month: '11', days: '25', name: 'Передать график проверки на декабрь', desc: 'Плановые проверки следующего месяца', color: 'orange' },
-        { type: 'date', rule: 'fixed', month: '12', days: '25', name: 'Передать график проверки на январь', desc: 'Плановые проверки следующего месяца', color: 'orange' },
-        // Каждая пятница (кроме начала января)
-        { type: 'cycle', rule: 'friday-skip-jan', month: 'all', days: '', name: 'Сформировать отчёты для ВКС', desc: 'Согласно повестке совещания', color: 'purple' },
-        // Последний понедельник месяца
-        { type: 'cycle', rule: 'last-monday', month: 'all', days: '', name: 'Сформировать потребность в материалах', desc: 'Направить на ответственного', color: 'teal' }
-    ];
-    
-    // Инициализация рабочих задач
-    if (!DB.workTasks) {
-        DB.workTasks = defaultWorkTasks;
-    }
     
     function getMonday(d) {
         d = new Date(d);
@@ -6533,34 +6502,24 @@
             Object.keys(DB.sharedCalendarEvents).forEach(function(key) {
                 var ev = DB.sharedCalendarEvents[key];
                 if (typeof ev === 'object' && ev.type !== 'birthday' && ev.type !== 'work') {
-                    if ((ev.cycle === 'yearly' && key === shortKey) || 
-                        (ev.cycle === 'once' && key === fullKey)) {
-                        events.push({ 
-                            name: ev.name, 
-                            type: ev.type, 
-                            category: 'user',
-                            eventKey: key,
-                            shared: true
-                        });
+                    var excluded = ev.excludeDates && ev.excludeDates.indexOf(fullKey) !== -1;
+                    if (!excluded && ((ev.cycle === 'yearly' && key === shortKey) || 
+                        (ev.cycle === 'once' && key === fullKey))) {
+                        events.push({ name: ev.name, type: ev.type, category: 'user', eventKey: key, shared: true, cycle: ev.cycle });
                     }
                 }
             });
         }
         
-        // Личные события пользователя (кроме birthday и work - они в своих категориях)
+        // Личные события пользователя
         if (DB.events) {
             Object.keys(DB.events).forEach(function(key) {
                 var ev = DB.events[key];
                 if (typeof ev === 'object' && ev.type !== 'birthday' && ev.type !== 'work') {
-                    if ((ev.cycle === 'yearly' && key === shortKey) || 
-                        (ev.cycle === 'once' && key === fullKey)) {
-                        events.push({ 
-                            name: ev.name, 
-                            type: ev.type, 
-                            category: 'user',
-                            eventKey: key,
-                            shared: false
-                        });
+                    var excluded = ev.excludeDates && ev.excludeDates.indexOf(fullKey) !== -1;
+                    if (!excluded && ((ev.cycle === 'yearly' && key === shortKey) || 
+                        (ev.cycle === 'once' && key === fullKey))) {
+                        events.push({ name: ev.name, type: ev.type, category: 'user', eventKey: key, shared: false, cycle: ev.cycle });
                     }
                 }
             });
@@ -6571,8 +6530,8 @@
     
     function getBirthdayEvents(d) {
         var events = [];
-        var shortKey = formatDateKey(d, false); // MM-DD
-        var fullKey = formatDateKey(d, true);   // YYYY-MM-DD
+        var shortKey = formatDateKey(d, false);
+        var fullKey = formatDateKey(d, true);
         
         // Загруженные из CSV дни рождения
         if (DB.birthdays) {
@@ -6588,9 +6547,10 @@
             Object.keys(DB.sharedCalendarEvents).forEach(function(key) {
                 var ev = DB.sharedCalendarEvents[key];
                 if (typeof ev === 'object' && ev.type === 'birthday') {
-                    if ((ev.cycle === 'yearly' && key === shortKey) || 
-                        (ev.cycle === 'once' && key === fullKey) || (key === shortKey)) {
-                        events.push({ name: ev.name, type: 'birthday', category: 'birthday', isUserCreated: true, eventKey: key, shared: true });
+                    var excluded = ev.excludeDates && ev.excludeDates.indexOf(fullKey) !== -1;
+                    if (!excluded && ((ev.cycle === 'yearly' && key === shortKey) || 
+                        (ev.cycle === 'once' && key === fullKey) || (key === shortKey))) {
+                        events.push({ name: ev.name, type: 'birthday', category: 'birthday', isUserCreated: true, eventKey: key, shared: true, cycle: ev.cycle || 'yearly' });
                     }
                 }
             });
@@ -6601,9 +6561,10 @@
             Object.keys(DB.events).forEach(function(key) {
                 var ev = DB.events[key];
                 if (typeof ev === 'object' && ev.type === 'birthday') {
-                    if ((ev.cycle === 'yearly' && key === shortKey) || 
-                        (ev.cycle === 'once' && key === fullKey) || (key === shortKey)) {
-                        events.push({ name: ev.name, type: 'birthday', category: 'birthday', isUserCreated: true, eventKey: key, shared: false });
+                    var excluded = ev.excludeDates && ev.excludeDates.indexOf(fullKey) !== -1;
+                    if (!excluded && ((ev.cycle === 'yearly' && key === shortKey) || 
+                        (ev.cycle === 'once' && key === fullKey) || (key === shortKey))) {
+                        events.push({ name: ev.name, type: 'birthday', category: 'birthday', isUserCreated: true, eventKey: key, shared: false, cycle: ev.cycle || 'yearly' });
                     }
                 }
             });
@@ -6615,79 +6576,6 @@
     // Получить рабочие задачи для даты
     function getWorkTaskEvents(d) {
         var events = [];
-        if (!DB.workTasks) return events;
-        
-        var day = d.getDate();
-        var month = d.getMonth() + 1; // 1-12
-        var dayOfWeek = d.getDay(); // 0=Вс, 1=Пн, ..., 5=Пт, 6=Сб
-        var year = d.getFullYear();
-        
-        DB.workTasks.forEach(function(task) {
-            var match = false;
-            
-            if (task.type === 'date' && task.rule === 'fixed') {
-                // Фиксированные даты: месяц совпадает и день в списке
-                if ((task.month === 'all' || parseInt(task.month) === month) && task.days) {
-                    var daysArr = task.days.split(',').map(function(x) { return parseInt(x.trim()); });
-                    if (daysArr.indexOf(day) !== -1) {
-                        match = true;
-                    }
-                }
-            } else if (task.type === 'cycle') {
-                // Циклические правила
-                if (task.rule === 'friday' || task.rule === 'friday-skip-jan') {
-                    // Каждая пятница
-                    if (dayOfWeek === 5) {
-                        // Для января проверяем - пропускаем первую неделю (дни 1-10)
-                        if (task.rule === 'friday-skip-jan' && month === 1 && day <= 10) {
-                            match = false;
-                        } else if (task.month === 'all' || parseInt(task.month) === month) {
-                            match = true;
-                        }
-                    }
-                } else if (task.rule === 'last-monday') {
-                    // Последний понедельник месяца
-                    if (dayOfWeek === 1) {
-                        // Проверяем что это последняя неделя месяца
-                        var lastDayOfMonth = new Date(year, month, 0).getDate();
-                        if (day > lastDayOfMonth - 7) {
-                            if (task.month === 'all' || parseInt(task.month) === month) {
-                                match = true;
-                            }
-                        }
-                    }
-                } else if (task.rule === 'first-monday') {
-                    // Первый понедельник месяца
-                    if (dayOfWeek === 1 && day <= 7) {
-                        if (task.month === 'all' || parseInt(task.month) === month) {
-                            match = true;
-                        }
-                    }
-                } else if (task.rule === 'last-friday') {
-                    // Последняя пятница месяца
-                    if (dayOfWeek === 5) {
-                        var lastDayOfMonth = new Date(year, month, 0).getDate();
-                        if (day > lastDayOfMonth - 7) {
-                            if (task.month === 'all' || parseInt(task.month) === month) {
-                                match = true;
-                            }
-                        }
-                    }
-                }
-            }
-            
-            if (match) {
-                events.push({
-                    name: task.name,
-                    desc: task.desc || '',
-                    type: 'work',
-                    category: 'work',
-                    color: task.color || 'blue'
-                });
-            }
-        });
-        
-        // Ручные рабочие задачи (созданные пользователем)
         var shortKey = formatDateKey(d, false);
         var fullKey = formatDateKey(d, true);
         
@@ -6696,9 +6584,10 @@
             Object.keys(DB.sharedCalendarEvents).forEach(function(key) {
                 var ev = DB.sharedCalendarEvents[key];
                 if (typeof ev === 'object' && ev.type === 'work') {
-                    if ((ev.cycle === 'yearly' && key === shortKey) || 
-                        (ev.cycle === 'once' && key === fullKey)) {
-                        events.push({ name: ev.name, desc: 'Общая задача', type: 'work', category: 'work', color: 'purple', isUserCreated: true, eventKey: key, shared: true });
+                    var excluded = ev.excludeDates && ev.excludeDates.indexOf(fullKey) !== -1;
+                    if (!excluded && ((ev.cycle === 'yearly' && key === shortKey) || 
+                        (ev.cycle === 'once' && key === fullKey))) {
+                        events.push({ name: ev.name, desc: ev.desc || 'Общая задача', type: 'work', category: 'work', color: 'purple', isUserCreated: true, eventKey: key, shared: true, cycle: ev.cycle });
                     }
                 }
             });
@@ -6709,9 +6598,10 @@
             Object.keys(DB.events).forEach(function(key) {
                 var ev = DB.events[key];
                 if (typeof ev === 'object' && ev.type === 'work') {
-                    if ((ev.cycle === 'yearly' && key === shortKey) || 
-                        (ev.cycle === 'once' && key === fullKey)) {
-                        events.push({ name: ev.name, desc: 'Личная задача', type: 'work', category: 'work', color: 'teal', isUserCreated: true, eventKey: key, shared: false });
+                    var excluded = ev.excludeDates && ev.excludeDates.indexOf(fullKey) !== -1;
+                    if (!excluded && ((ev.cycle === 'yearly' && key === shortKey) || 
+                        (ev.cycle === 'once' && key === fullKey))) {
+                        events.push({ name: ev.name, desc: ev.desc || 'Личная задача', type: 'work', category: 'work', color: 'teal', isUserCreated: true, eventKey: key, shared: false, cycle: ev.cycle });
                     }
                 }
             });
@@ -6953,7 +6843,7 @@
         if (allEvents.length > 0) {
             // Рабочие задачи (показываем первыми)
             if (workEvents.length > 0) {
-                html += '<div class="day-events-section"><div class="day-events-title work">Рабочие задачи</div><div class="day-events">';
+                html += '<div class="day-events-section"><div class="day-events-title work">Задачи</div><div class="day-events">';
                 workEvents.forEach(function(e) {
                     html += '<div class="day-event-item">' +
                         '<div class="day-event-icon work">'+getEventIcon('work')+'</div>' +
@@ -7050,23 +6940,62 @@
     };
     
     window.deleteEventByKey = function(key, name, isSharedEvent) {
+        var dateKey = document.getElementById('dayModalDate').value;
+        var store = isSharedEvent ? DB.sharedCalendarEvents : DB.events;
+        var ev = store ? store[key] : null;
+        var cycle = ev ? ev.cycle : 'once';
+        
+        if (cycle === 'yearly') {
+            // Ежегодное событие — спрашиваем
+            var choice = prompt(
+                'Событие "' + name + '" повторяется ежегодно.\n\n' +
+                '1 — Удалить только на эту дату\n' +
+                '2 — Удалить полностью (на все годы)\n' +
+                '0 — Отмена\n\nВведите 1 или 2:', '1');
+            
+            if (choice === '1') {
+                // Добавляем текущую дату в excludeDates
+                if (ev) {
+                    if (!ev.excludeDates) ev.excludeDates = [];
+                    if (ev.excludeDates.indexOf(dateKey) === -1) ev.excludeDates.push(dateKey);
+                }
+                if (isSharedEvent && isAdmin()) { save(); saveSharedPlans(); }
+                else { save(); }
+                renderWeekCalendar();
+                openDayModal(dateKey);
+                toast('Событие скрыто на ' + dateKey, true);
+                return;
+            } else if (choice === '2') {
+                // Удаляем полностью
+                if (isSharedEvent && isAdmin() && store && store[key]) {
+                    delete store[key];
+                    save(); saveSharedPlans();
+                } else if (store && store[key]) {
+                    delete store[key];
+                    save();
+                }
+                renderWeekCalendar();
+                openDayModal(dateKey);
+                toast('Событие полностью удалено', true);
+                return;
+            }
+            // 0 или отмена
+            return;
+        }
+        
+        // Однократное событие — простое удаление
         if (!confirm('Удалить событие "'+name+'"?')) return;
         
-        if (isSharedEvent && isAdmin() && DB.sharedCalendarEvents && DB.sharedCalendarEvents[key]) {
-            delete DB.sharedCalendarEvents[key];
-            save();
-            saveSharedPlans();
-        } else if (DB.events && DB.events[key]) {
-            delete DB.events[key];
+        if (isSharedEvent && isAdmin() && store && store[key]) {
+            delete store[key];
+            save(); saveSharedPlans();
+        } else if (store && store[key]) {
+            delete store[key];
             save();
         }
         
         renderWeekCalendar();
-        
-        // Перерисовываем модалку
-        var dateKey = document.getElementById('dayModalDate').value;
         openDayModal(dateKey);
-        
         toast('Событие удалено', true);
     };
     
@@ -7181,22 +7110,17 @@
         
         // Легенда
         html += '<div class="calendar-legend">' +
-            '<div class="legend-item"><span class="legend-dot work"></span> Рабочие задачи</div>' +
-            '<div class="legend-item"><span class="legend-dot production"></span> Производственный</div>' +
-            '<div class="legend-item"><span class="legend-dot user"></span> Пользовательские</div>' +
+            '<div class="legend-item"><span class="legend-dot production"></span> Праздники РФ</div>' +
+            '<div class="legend-item"><span class="legend-dot work"></span> Задачи</div>' +
+            '<div class="legend-item"><span class="legend-dot user"></span> События</div>' +
             '<div class="legend-item"><span class="legend-dot birthday"></span> Дни рождения</div>' +
             '<div class="legend-item"><span class="legend-dot today"></span> Сегодня</div>' +
         '</div>';
         
-        // Загрузка файлов
+        // Загрузка дней рождения
         html += '<div class="calendar-uploads">' +
             '<h4>Загрузка данных</h4>' +
             '<div class="calendar-upload-row">' +
-                '<div class="calendar-upload-item">' +
-                    '<label>Производственный календарь</label>' +
-                    '<small>Формат: Дата;Название;Тип</small>' +
-                    '<input type="file" id="productionFile" accept=".csv" onchange="loadProductionCSV(this)">' +
-                '</div>' +
                 '<div class="calendar-upload-item">' +
                     '<label>Дни рождения</label>' +
                     '<small>Формат: Дата;ФИО;Должность</small>' +
