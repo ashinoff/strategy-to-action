@@ -3454,6 +3454,217 @@
             .mobile-back-bar { display: none !important; }
         }
 
+        /* ========== ADMIN PLAN/TASK MANAGEMENT ========== */
+        .admin-add-card {
+            border: 2px dashed var(--border-color);
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 120px;
+            cursor: pointer;
+            transition: var(--transition);
+            background: transparent;
+        }
+        .admin-add-card:hover {
+            border-color: var(--accent-blue);
+            background: #f0f7ff;
+        }
+        .admin-add-card-inner {
+            text-align: center;
+            color: var(--text-muted);
+        }
+        .admin-add-card-inner svg {
+            width: 32px;
+            height: 32px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 1.5;
+            margin-bottom: 6px;
+        }
+        .admin-add-card:hover .admin-add-card-inner { color: var(--accent-blue); }
+        .admin-add-card-inner span {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        /* Delete plan button on card */
+        .admin-card-delete {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 28px;
+            height: 28px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: #fee2e2;
+            border: none;
+            border-radius: 6px;
+            color: #dc2626;
+            cursor: pointer;
+            transition: var(--transition);
+            z-index: 5;
+        }
+        .admin-card-delete svg {
+            width: 16px;
+            height: 16px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
+        }
+        .admin-card-delete:hover { background: #fecaca; }
+        .category-card { position: relative; }
+        .category-card:hover .admin-card-delete { display: flex; }
+
+        /* Task modal admin controls */
+        .admin-modal-toolbar {
+            padding: 12px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        .admin-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            background: #fff;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .admin-btn svg {
+            width: 16px;
+            height: 16px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
+        }
+        .admin-btn:hover { background: var(--bg-hover); border-color: var(--accent-blue); color: var(--accent-blue); }
+        .admin-btn.danger:hover { border-color: #dc2626; color: #dc2626; background: #fef2f2; }
+        .admin-btn.green { border-color: var(--accent-green); color: var(--accent-green); }
+        .admin-btn.green:hover { background: #dcfce7; }
+
+        /* Delete icon on tasks */
+        .task-delete-btn {
+            width: 28px;
+            height: 28px;
+            min-width: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 6px;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: var(--transition);
+            margin-left: auto;
+            flex-shrink: 0;
+        }
+        .task-delete-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
+        .task-delete-btn:hover { background: #fee2e2; border-color: #fecaca; color: #dc2626; }
+
+        /* Admin modal (add plan / add task) */
+        .admin-modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1100;
+            padding: 20px;
+        }
+        .admin-modal-overlay.show { display: flex; }
+        .admin-modal-box {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .admin-modal-box-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .admin-modal-box-header h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .admin-modal-box-close {
+            width: 32px; height: 32px;
+            display: flex; align-items: center; justify-content: center;
+            background: transparent; border: none; border-radius: 6px;
+            font-size: 20px; color: var(--text-muted); cursor: pointer;
+            transition: var(--transition);
+        }
+        .admin-modal-box-close:hover { background: #fee2e2; color: #dc2626; }
+        .admin-modal-box-body { padding: 24px; }
+        .admin-form-group { margin-bottom: 16px; }
+        .admin-form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+        .admin-form-group input,
+        .admin-form-group textarea,
+        .admin-form-group select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-family: inherit;
+            transition: var(--transition);
+        }
+        .admin-form-group input:focus,
+        .admin-form-group textarea:focus,
+        .admin-form-group select:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+        }
+        .admin-form-group textarea { resize: vertical; min-height: 60px; }
+        .admin-form-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+        .admin-form-actions button {
+            padding: 10px 20px;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            border: 1px solid var(--border-color);
+            background: #fff;
+            color: var(--text-primary);
+        }
+        .admin-form-actions button:hover { background: var(--bg-hover); }
+        .admin-form-actions .btn-primary {
+            background: var(--accent-blue);
+            color: #fff;
+            border-color: var(--accent-blue);
+        }
+        .admin-form-actions .btn-primary:hover { background: #2563eb; }
+
     </style>
 
     <!-- Firebase SDK -->
@@ -3862,7 +4073,71 @@
                 <h2 id="categoryModalTitle"></h2>
                 <button class="category-modal-close" onclick="closeCategory()">×</button>
             </div>
+            <div id="categoryModalToolbar"></div>
             <div class="category-modal-body" id="categoryModalBody"></div>
+        </div>
+    </div>
+
+    <!-- Admin: Add/Edit Plan Modal -->
+    <div class="admin-modal-overlay" id="adminPlanModal" onclick="if(event.target===this)closeAdminPlanModal()">
+        <div class="admin-modal-box">
+            <div class="admin-modal-box-header">
+                <h3 id="adminPlanModalTitle">Добавить план</h3>
+                <button class="admin-modal-box-close" onclick="closeAdminPlanModal()">×</button>
+            </div>
+            <div class="admin-modal-box-body">
+                <div class="admin-form-group">
+                    <label>Название плана</label>
+                    <input type="text" id="adminPlanName" placeholder="Например: ИСУ">
+                </div>
+                <div class="admin-form-group">
+                    <label>Описание (необязательно)</label>
+                    <input type="text" id="adminPlanDesc" placeholder="Краткое описание направления">
+                </div>
+                <input type="hidden" id="adminPlanType">
+                <div class="admin-form-actions">
+                    <button onclick="closeAdminPlanModal()">Отмена</button>
+                    <button class="btn-primary" onclick="saveAdminPlan()">Добавить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin: Add Task Modal -->
+    <div class="admin-modal-overlay" id="adminTaskModal" onclick="if(event.target===this)closeAdminTaskModal()">
+        <div class="admin-modal-box">
+            <div class="admin-modal-box-header">
+                <h3>Добавить задачу</h3>
+                <button class="admin-modal-box-close" onclick="closeAdminTaskModal()">×</button>
+            </div>
+            <div class="admin-modal-box-body">
+                <div class="admin-form-group">
+                    <label>Название задачи *</label>
+                    <input type="text" id="adminTaskTitle" placeholder="Что нужно сделать">
+                </div>
+                <div class="admin-form-group">
+                    <label>Описание</label>
+                    <textarea id="adminTaskDesc" placeholder="Подробности задачи"></textarea>
+                </div>
+                <div class="admin-form-group">
+                    <label>Срок</label>
+                    <input type="text" id="adminTaskDeadline" placeholder="Январь / Ежемесячно / По графику">
+                </div>
+                <div class="admin-form-group">
+                    <label>Норматив</label>
+                    <input type="text" id="adminTaskNorm" placeholder="ПП РФ №442 / ФЗ-522">
+                </div>
+                <div class="admin-form-group">
+                    <label>Ответственный</label>
+                    <input type="text" id="adminTaskResp" placeholder="Начальник УРРУ / Инженер">
+                </div>
+                <input type="hidden" id="adminTaskType">
+                <input type="hidden" id="adminTaskCatIdx">
+                <div class="admin-form-actions">
+                    <button onclick="closeAdminTaskModal()">Отмена</button>
+                    <button class="btn-primary" onclick="saveAdminTask()">Добавить</button>
+                </div>
+            </div>
         </div>
     </div>
     
@@ -4579,6 +4854,7 @@
             var pct = c.tasks.length > 0 ? Math.round(done / c.tasks.length * 100) : 0;
             var icon = icons[idx % icons.length];
             html += '<div class="category-card" data-cat="'+c.id+'" onclick="openCategory(\'strategic\', '+idx+')">' +
+                adminDeleteCardBtn('strategic', idx) +
                 '<div class="category-card-header">' +
                     '<div class="category-card-icon '+icon.color+'">'+icon.svg+'</div>' +
                     '<div class="category-card-content">' +
@@ -4596,6 +4872,7 @@
                 '</div>' +
             '</div>';
         });
+        html += adminAddCardHtml('strategic');
         html += '</div>';
         
         return html;
@@ -4618,8 +4895,22 @@
         var data = DB[type];
         if (!data || !data[idx]) return;
         var cat = data[idx];
+        _adminModalCtx = { type: type, catIdx: String(idx) };
         
         document.getElementById('categoryModalTitle').textContent = cat.title;
+        
+        // Admin toolbar
+        var toolbar = document.getElementById('categoryModalToolbar');
+        if (isAdmin()) {
+            toolbar.innerHTML = '<div class="admin-modal-toolbar">' +
+                '<button class="admin-btn green" onclick="openAdminTaskModal(\''+type+'\', \''+idx+'\')">' +
+                    '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>' +
+                    'Добавить задачу' +
+                '</button>' +
+            '</div>';
+        } else {
+            toolbar.innerHTML = '';
+        }
         
         var html = '<div class="task-list">';
         cat.tasks.forEach(function(t) {
@@ -4635,6 +4926,7 @@
                         (t.norm?'<span class="task-tag norm">'+t.norm+'</span>':'') +
                     '</div>' +
                 '</div>' +
+                (isAdmin() ? '<button class="task-delete-btn" onclick="deleteAdminTask(\''+type+'\',\''+idx+'\',\''+t.id+'\',event)" title="Удалить задачу"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>' : '') +
             '</div>';
         });
         html += '</div>';
@@ -4645,6 +4937,7 @@
     
     window.closeCategory = function() {
         document.getElementById('categoryModal').classList.remove('show');
+        document.getElementById('categoryModalToolbar').innerHTML = '';
         // Обновляем счётчики и прогресс-бары после закрытия модалки
         updateCounters();
     };
@@ -4678,6 +4971,7 @@
             var pct = s.tasks.length > 0 ? Math.round(done / s.tasks.length * 100) : 0;
             var icon = icons[idx % icons.length];
             html += '<div class="category-card" data-cat="'+s.id+'" onclick="openCategory(\'tactical\', '+idx+')">' +
+                adminDeleteCardBtn('tactical', idx) +
                 '<div class="category-card-header">' +
                     '<div class="category-card-icon '+icon.color+'">'+icon.svg+'</div>' +
                     '<div class="category-card-content">' +
@@ -4695,6 +4989,7 @@
                 '</div>' +
             '</div>';
         });
+        html += adminAddCardHtml('tactical');
         html += '</div>';
         
         return html;
@@ -4763,6 +5058,7 @@
                 var catId = 'op_' + phaseIdx + '_' + sectionIdx;
                 
                 html += '<div class="category-card" data-cat="'+catId+'" onclick="openOperationalSection('+phaseIdx+', '+sectionIdx+')">' +
+                    adminDeleteCardBtn('operational', sectionIdx) +
                     '<div class="category-card-header">' +
                         '<div class="category-card-icon '+icon.color+'">'+icon.svg+'</div>' +
                         '<div class="category-card-content">' +
@@ -4780,6 +5076,7 @@
                     '</div>' +
                 '</div>';
             });
+            html += adminAddCardHtml('operational');
             html += '</div>';
             
             html += '</div>';
@@ -4793,8 +5090,23 @@
         if (!phase) return;
         var section = phase.sections[sectionIdx];
         if (!section) return;
+        var catIdx = phaseIdx + '_' + sectionIdx;
+        _adminModalCtx = { type: 'operational', catIdx: catIdx };
         
         document.getElementById('categoryModalTitle').textContent = section.title;
+        
+        // Admin toolbar
+        var toolbar = document.getElementById('categoryModalToolbar');
+        if (isAdmin()) {
+            toolbar.innerHTML = '<div class="admin-modal-toolbar">' +
+                '<button class="admin-btn green" onclick="openAdminTaskModal(\'operational\', \''+catIdx+'\')">' +
+                    '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>' +
+                    'Добавить задачу' +
+                '</button>' +
+            '</div>';
+        } else {
+            toolbar.innerHTML = '';
+        }
         
         var html = '<div class="task-list">';
         section.items.forEach(function(i) {
@@ -4805,6 +5117,7 @@
                     '<div class="task-title">'+(i.req?'<span class="task-required">*</span> ':'')+i.title+'</div>' +
                     (i.desc?'<div class="task-desc">'+i.desc+'</div>':'') +
                 '</div>' +
+                (isAdmin() ? '<button class="task-delete-btn" onclick="deleteAdminTask(\'operational\',\''+catIdx+'\',\''+i.id+'\',event)" title="Удалить задачу"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>' : '') +
             '</div>';
         });
         html += '</div>';
@@ -4839,6 +5152,222 @@
             }
         });
     };
+
+    // ========== ADMIN PLAN/TASK MANAGEMENT ==========
+    function isAdmin() { return userRole === 'admin_ia'; }
+
+    function adminAddCardHtml(type) {
+        if (!isAdmin()) return '';
+        return '<div class="admin-add-card" onclick="openAdminPlanModal(\''+type+'\')">' +
+            '<div class="admin-add-card-inner">' +
+                '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>' +
+                '<span>Добавить план</span>' +
+            '</div>' +
+        '</div>';
+    }
+
+    function adminDeleteCardBtn(type, idx) {
+        if (!isAdmin()) return '';
+        return '<button class="admin-card-delete" onclick="event.stopPropagation();deleteAdminPlan(\''+type+'\','+idx+')" title="Удалить план">' +
+            '<svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>' +
+        '</button>';
+    }
+
+    // Open plan creation modal
+    window.openAdminPlanModal = function(type) {
+        document.getElementById('adminPlanName').value = '';
+        document.getElementById('adminPlanDesc').value = '';
+        document.getElementById('adminPlanType').value = type;
+        var titles = {strategic:'Стратегический план',tactical:'Тактический план',operational:'Оперативный план'};
+        document.getElementById('adminPlanModalTitle').textContent = 'Добавить в: ' + (titles[type]||type);
+        document.getElementById('adminPlanModal').classList.add('show');
+        setTimeout(function(){ document.getElementById('adminPlanName').focus(); }, 100);
+    };
+
+    window.closeAdminPlanModal = function() {
+        document.getElementById('adminPlanModal').classList.remove('show');
+    };
+
+    window.saveAdminPlan = function() {
+        var type = document.getElementById('adminPlanType').value;
+        var name = document.getElementById('adminPlanName').value.trim();
+        var desc = document.getElementById('adminPlanDesc').value.trim();
+        if (!name) { document.getElementById('adminPlanName').style.borderColor='#dc2626'; return; }
+
+        if (type === 'operational') {
+            // For operational: add a new section to the currently active phase
+            if (!DB.operational || !DB.operational.length) return;
+            var activePhase = document.querySelector('.phase-tab.active');
+            var phaseIdx = activePhase ? parseInt(activePhase.getAttribute('data-phase')) : 0;
+            if (!DB.operational[phaseIdx]) return;
+            DB.operational[phaseIdx].sections.push({
+                title: name,
+                resp: desc || 'Задачи по направлению',
+                items: []
+            });
+        } else {
+            // Strategic / Tactical
+            if (!DB[type]) DB[type] = [];
+            var newId = name;
+            DB[type].push({
+                id: newId,
+                title: name,
+                desc: desc || '',
+                tasks: []
+            });
+        }
+
+        save();
+        saveToFirestore();
+        closeAdminPlanModal();
+        render();
+        toast('План "'+name+'" добавлен');
+    };
+
+    // Delete plan
+    window.deleteAdminPlan = function(type, idx) {
+        var planName = '';
+        if (type === 'operational') {
+            var activePhase = document.querySelector('.phase-tab.active');
+            var phaseIdx = activePhase ? parseInt(activePhase.getAttribute('data-phase')) : 0;
+            if (!DB.operational[phaseIdx] || !DB.operational[phaseIdx].sections[idx]) return;
+            planName = DB.operational[phaseIdx].sections[idx].title;
+        } else {
+            if (!DB[type] || !DB[type][idx]) return;
+            planName = DB[type][idx].title;
+        }
+
+        if (!confirm('Удалить план "'+planName+'" и все его задачи?')) return;
+
+        if (type === 'operational') {
+            var activePhase2 = document.querySelector('.phase-tab.active');
+            var phaseIdx2 = activePhase2 ? parseInt(activePhase2.getAttribute('data-phase')) : 0;
+            // Remove progress for items in this section
+            var section = DB.operational[phaseIdx2].sections[idx];
+            if (section && section.items) {
+                section.items.forEach(function(item) { delete DB.progress[item.id]; });
+            }
+            DB.operational[phaseIdx2].sections.splice(idx, 1);
+        } else {
+            // Remove progress for tasks
+            var cat = DB[type][idx];
+            if (cat && cat.tasks) {
+                cat.tasks.forEach(function(t) { delete DB.progress[t.id]; });
+            }
+            DB[type].splice(idx, 1);
+        }
+
+        save();
+        saveToFirestore();
+        render();
+        toast('План "'+planName+'" удалён');
+    };
+
+    // Open task creation modal
+    window.openAdminTaskModal = function(type, catIdx) {
+        document.getElementById('adminTaskTitle').value = '';
+        document.getElementById('adminTaskDesc').value = '';
+        document.getElementById('adminTaskDeadline').value = '';
+        document.getElementById('adminTaskNorm').value = '';
+        document.getElementById('adminTaskResp').value = '';
+        document.getElementById('adminTaskType').value = type;
+        document.getElementById('adminTaskCatIdx').value = catIdx;
+        document.getElementById('adminTaskModal').classList.add('show');
+        setTimeout(function(){ document.getElementById('adminTaskTitle').focus(); }, 100);
+    };
+
+    window.closeAdminTaskModal = function() {
+        document.getElementById('adminTaskModal').classList.remove('show');
+    };
+
+    window.saveAdminTask = function() {
+        var type = document.getElementById('adminTaskType').value;
+        var catIdx = document.getElementById('adminTaskCatIdx').value;
+        var title = document.getElementById('adminTaskTitle').value.trim();
+        if (!title) { document.getElementById('adminTaskTitle').style.borderColor='#dc2626'; return; }
+
+        var desc = document.getElementById('adminTaskDesc').value.trim();
+        var deadline = document.getElementById('adminTaskDeadline').value.trim();
+        var norm = document.getElementById('adminTaskNorm').value.trim();
+        var resp = document.getElementById('adminTaskResp').value.trim();
+
+        // Generate unique ID
+        var prefix = type === 'strategic' ? 'С' : type === 'tactical' ? 'Т' : 'О';
+        var newId = prefix + '-' + Date.now().toString(36).toUpperCase();
+
+        if (type === 'operational') {
+            // catIdx is "phaseIdx_sectionIdx"
+            var parts = catIdx.split('_');
+            var phaseIdx = parseInt(parts[0]);
+            var sectionIdx = parseInt(parts[1]);
+            if (!DB.operational[phaseIdx] || !DB.operational[phaseIdx].sections[sectionIdx]) return;
+            DB.operational[phaseIdx].sections[sectionIdx].items.push({
+                id: newId,
+                title: title,
+                desc: desc || undefined,
+                req: false
+            });
+        } else {
+            var idx = parseInt(catIdx);
+            if (!DB[type] || !DB[type][idx]) return;
+            var task = { id: newId, title: title };
+            if (desc) task.desc = desc;
+            if (deadline) task.deadline = deadline;
+            if (norm) task.norm = norm;
+            if (resp) task.resp = resp;
+            DB[type][idx].tasks.push(task);
+        }
+
+        save();
+        saveToFirestore();
+        closeAdminTaskModal();
+
+        // Re-open the category modal to show updated list
+        if (type === 'operational') {
+            var parts2 = catIdx.split('_');
+            openOperationalSection(parseInt(parts2[0]), parseInt(parts2[1]));
+        } else {
+            openCategory(type, parseInt(catIdx));
+        }
+        updateCounters();
+        toast('Задача добавлена');
+    };
+
+    // Delete a task
+    window.deleteAdminTask = function(type, catIdx, taskId, event) {
+        if (event) event.stopPropagation();
+        if (!confirm('Удалить эту задачу?')) return;
+
+        if (type === 'operational') {
+            var parts = catIdx.split('_');
+            var phaseIdx = parseInt(parts[0]);
+            var sectionIdx = parseInt(parts[1]);
+            if (!DB.operational[phaseIdx] || !DB.operational[phaseIdx].sections[sectionIdx]) return;
+            var items = DB.operational[phaseIdx].sections[sectionIdx].items;
+            DB.operational[phaseIdx].sections[sectionIdx].items = items.filter(function(i) { return i.id !== taskId; });
+        } else {
+            var idx = parseInt(catIdx);
+            if (!DB[type] || !DB[type][idx]) return;
+            DB[type][idx].tasks = DB[type][idx].tasks.filter(function(t) { return t.id !== taskId; });
+        }
+
+        delete DB.progress[taskId];
+        save();
+        saveToFirestore();
+
+        // Re-open modal
+        if (type === 'operational') {
+            var parts2 = catIdx.split('_');
+            openOperationalSection(parseInt(parts2[0]), parseInt(parts2[1]));
+        } else {
+            openCategory(type, parseInt(catIdx));
+        }
+        updateCounters();
+        toast('Задача удалена');
+    };
+
+    // Current modal context for admin
+    var _adminModalCtx = { type: '', catIdx: '' };
 
     function renderTerms() {
         // 20 технологических карт
