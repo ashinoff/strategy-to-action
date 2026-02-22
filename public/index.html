@@ -3688,6 +3688,24 @@
         }
         .normative-card-delete svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; }
         .normative-card:hover .normative-card-delete { display: flex; }
+        .normative-card-edit {
+            position: absolute;
+            top: 8px;
+            right: 40px;
+            width: 28px;
+            height: 28px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: #dbeafe;
+            border: none;
+            border-radius: 6px;
+            color: #2563eb;
+            cursor: pointer;
+            z-index: 5;
+        }
+        .normative-card-edit svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; }
+        .normative-card:hover .normative-card-edit { display: flex; }
         .normative-add-card {
             border: 2px dashed var(--border-color);
             border-radius: var(--radius);
@@ -3729,6 +3747,24 @@
         }
         .law-card-delete svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; }
         .law-card:hover .law-card-delete { display: flex; }
+        .law-card-edit {
+            position: absolute;
+            top: 8px;
+            right: 40px;
+            width: 28px;
+            height: 28px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: #dbeafe;
+            border: none;
+            border-radius: 6px;
+            color: #2563eb;
+            cursor: pointer;
+            z-index: 5;
+        }
+        .law-card-edit svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; }
+        .law-card:hover .law-card-edit { display: flex; }
         .law-add-card {
             border: 2px dashed var(--border-color);
             border-radius: var(--radius);
@@ -5634,6 +5670,7 @@
 
     // ========== NORMATIVE DOCS ADMIN ==========
     window.openAdminNormModal = function() {
+        window._editNormIdx = null;
         document.getElementById('adminNormNum').value = '';
         document.getElementById('adminNormDate').value = '';
         document.getElementById('adminNormName').value = '';
@@ -5645,6 +5682,7 @@
     };
 
     window.closeAdminNormModal = function() {
+        window._editNormIdx = null;
         document.getElementById('adminNormModal').classList.remove('show');
     };
 
@@ -5663,16 +5701,43 @@
         var pdfUrl = document.getElementById('adminNormPdfUrl').value.trim();
 
         if (!DB.sharedNormDocs) DB.sharedNormDocs = [];
-        var doc = { num: num, date: date, name: name, fullName: fullName };
-        if (code) doc.code = code;
-        if (pdfUrl) doc.pdfUrl = pdfUrl;
-        DB.sharedNormDocs.push(doc);
         
+        var editIdx = window._editNormIdx;
+        var doc;
+        if (editIdx !== null && editIdx !== undefined && DB.sharedNormDocs[editIdx]) {
+            // Edit mode
+            doc = DB.sharedNormDocs[editIdx];
+            doc.num = num; doc.date = date; doc.name = name; doc.fullName = fullName;
+            doc.code = code || ''; doc.pdfUrl = pdfUrl || '';
+            if (!doc.code) delete doc.code;
+            if (!doc.pdfUrl) delete doc.pdfUrl;
+        } else {
+            // Add mode
+            doc = { num: num, date: date, name: name, fullName: fullName };
+            if (code) doc.code = code;
+            if (pdfUrl) doc.pdfUrl = pdfUrl;
+            DB.sharedNormDocs.push(doc);
+        }
+        
+        window._editNormIdx = null;
         save();
         saveSharedPlans();
         closeAdminNormModal();
         render();
-        toast('Документ №'+num+' добавлен');
+        toast(editIdx !== null && editIdx !== undefined ? 'Документ обновлён' : 'Документ №'+num+' добавлен');
+    };
+
+    window.editNormDoc = function(idx) {
+        if (!DB.sharedNormDocs || !DB.sharedNormDocs[idx]) return;
+        var doc = DB.sharedNormDocs[idx];
+        window._editNormIdx = idx;
+        document.getElementById('adminNormNum').value = doc.num || '';
+        document.getElementById('adminNormDate').value = doc.date || '';
+        document.getElementById('adminNormName').value = doc.name || '';
+        document.getElementById('adminNormFullName').value = doc.fullName || '';
+        document.getElementById('adminNormCode').value = doc.code || '';
+        document.getElementById('adminNormPdfUrl').value = doc.pdfUrl || '';
+        document.getElementById('adminNormModal').classList.add('show');
     };
 
     window.deleteNormDoc = function(idx) {
@@ -5688,6 +5753,7 @@
 
     // ========== LAWS DOCS ADMIN ==========
     window.openAdminLawModal = function() {
+        window._editLawIdx = null;
         document.getElementById('adminLawNum').value = '';
         document.getElementById('adminLawName').value = '';
         document.getElementById('adminLawFullName').value = '';
@@ -5698,6 +5764,7 @@
     };
 
     window.closeAdminLawModal = function() {
+        window._editLawIdx = null;
         document.getElementById('adminLawModal').classList.remove('show');
     };
 
@@ -5715,15 +5782,38 @@
         var pdfUrl = document.getElementById('adminLawPdfUrl').value.trim();
 
         if (!DB.sharedLawsDocs) DB.sharedLawsDocs = [];
-        var doc = { num: num, name: name, fullName: fullName, desc: desc || '' };
-        if (pdfUrl) doc.pdfUrl = pdfUrl;
-        DB.sharedLawsDocs.push(doc);
         
+        var editIdx = window._editLawIdx;
+        var doc;
+        if (editIdx !== null && editIdx !== undefined && DB.sharedLawsDocs[editIdx]) {
+            doc = DB.sharedLawsDocs[editIdx];
+            doc.num = num; doc.name = name; doc.fullName = fullName; doc.desc = desc || '';
+            doc.pdfUrl = pdfUrl || '';
+            if (!doc.pdfUrl) delete doc.pdfUrl;
+        } else {
+            doc = { num: num, name: name, fullName: fullName, desc: desc || '' };
+            if (pdfUrl) doc.pdfUrl = pdfUrl;
+            DB.sharedLawsDocs.push(doc);
+        }
+        
+        window._editLawIdx = null;
         save();
         saveSharedPlans();
         closeAdminLawModal();
         render();
-        toast('Акт "'+name+'" добавлен');
+        toast(editIdx !== null && editIdx !== undefined ? 'Акт обновлён' : 'Акт "'+name+'" добавлен');
+    };
+
+    window.editLawDoc = function(idx) {
+        if (!DB.sharedLawsDocs || !DB.sharedLawsDocs[idx]) return;
+        var doc = DB.sharedLawsDocs[idx];
+        window._editLawIdx = idx;
+        document.getElementById('adminLawNum').value = doc.num || '';
+        document.getElementById('adminLawName').value = doc.name || '';
+        document.getElementById('adminLawFullName').value = doc.fullName || '';
+        document.getElementById('adminLawDesc').value = doc.desc || '';
+        document.getElementById('adminLawPdfUrl').value = doc.pdfUrl || '';
+        document.getElementById('adminLawModal').classList.add('show');
     };
 
     window.deleteLawDoc = function(idx) {
@@ -6165,6 +6255,7 @@
                     "openNormativePdf('"+doc.num+" от "+doc.date+"')";
             
             html += '<div class="normative-card" onclick="'+onClick+'">' +
+                (isAdmin() ? '<button class="normative-card-edit" onclick="event.stopPropagation();editNormDoc('+idx+')" title="Редактировать"><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>' : '') +
                 (isAdmin() ? '<button class="normative-card-delete" onclick="event.stopPropagation();deleteNormDoc('+idx+')" title="Удалить документ"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>' : '') +
                 '<div class="normative-card-header">' +
                     '<div class="normative-card-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>' +
@@ -6285,6 +6376,7 @@
                 "openLawPdf('"+law.num+"')";
 
             html += '<div class="law-card" onclick="'+onClick+'">' +
+                (isAdmin() ? '<button class="law-card-edit" onclick="event.stopPropagation();editLawDoc('+idx+')" title="Редактировать"><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>' : '') +
                 (isAdmin() ? '<button class="law-card-delete" onclick="event.stopPropagation();deleteLawDoc('+idx+')" title="Удалить"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>' : '') +
                 '<div class="law-card-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>' +
                 '<div class="law-card-content">' +
