@@ -6458,6 +6458,61 @@
         return mm + '-' + dd;
     }
     
+    function formatDayKey(d) {
+        return 'D-' + String(d.getDate()).padStart(2, '0');
+    }
+    
+    // Проверка: рабочий ли день (не выходной и не праздник РФ)
+    function isWorkingDay(date) {
+        var dow = date.getDay();
+        if (dow === 0 || dow === 6) return false; // Сб/Вс
+        var mmdd = formatDateKey(date, false);
+        for (var i = 0; i < productionCalendar.length; i++) {
+            if (productionCalendar[i].date === mmdd && productionCalendar[i].type === 'holiday') return false;
+        }
+        return true;
+    }
+    
+    // Сдвиг даты на ближайший рабочий день (вперёд)
+    function shiftToWorkday(date) {
+        var d = new Date(date.getTime());
+        var maxShift = 10; // макс сдвиг чтобы не зациклиться
+        while (!isWorkingDay(d) && maxShift > 0) {
+            d.setDate(d.getDate() + 1);
+            maxShift--;
+        }
+        return d;
+    }
+    
+    // Проверка совпадения события с датой (с учётом переноса на рабочий день)
+    function matchesEventDate(key, cycle, d) {
+        var fullKey = formatDateKey(d, true);
+        
+        if (cycle === 'once') {
+            return key === fullKey;
+        }
+        
+        if (cycle === 'yearly') {
+            // key = "MM-DD", строим номинальную дату в текущем году
+            var parts = key.split('-');
+            var nominal = new Date(d.getFullYear(), parseInt(parts[0]) - 1, parseInt(parts[1]));
+            var shifted = shiftToWorkday(nominal);
+            return formatDateKey(shifted, true) === fullKey;
+        }
+        
+        if (cycle === 'monthly') {
+            // key = "D-DD", строим номинальную дату в текущем месяце
+            var dayNum = parseInt(key.substring(2));
+            var lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+            if (dayNum > lastDay) dayNum = lastDay; // 31 в месяце с 30 днями
+            var nominal = new Date(d.getFullYear(), d.getMonth(), dayNum);
+            var shifted = shiftToWorkday(nominal);
+            return formatDateKey(shifted, true) === fullKey;
+        }
+        
+        return false;
+    }
+    
     // Получить события по категориям
     function getProductionEvents(d) {
         var events = [];
@@ -6496,6 +6551,7 @@
         var events = [];
         var shortKey = formatDateKey(d, false);
         var fullKey = formatDateKey(d, true);
+        var dayKey = formatDayKey(d);
         
         // Общие события от админа (видны всем)
         if (DB.sharedCalendarEvents) {
@@ -6503,8 +6559,7 @@
                 var ev = DB.sharedCalendarEvents[key];
                 if (typeof ev === 'object' && ev.type !== 'birthday' && ev.type !== 'work') {
                     var excluded = ev.excludeDates && ev.excludeDates.indexOf(fullKey) !== -1;
-                    if (!excluded && ((ev.cycle === 'yearly' && key === shortKey) || 
-                        (ev.cycle === 'once' && key === fullKey))) {
+                    if (!excluded && matchesEventDate(key, ev.cycle, d)) {
                         events.push({ name: ev.name, type: ev.type, category: 'user', eventKey: key, shared: true, cycle: ev.cycle });
                     }
                 }
@@ -6517,8 +6572,7 @@
                 var ev = DB.events[key];
                 if (typeof ev === 'object' && ev.type !== 'birthday' && ev.type !== 'work') {
                     var excluded = ev.excludeDates && ev.excludeDates.indexOf(fullKey) !== -1;
-                    if (!excluded && ((ev.cycle === 'yearly' && key === shortKey) || 
-                        (ev.cycle === 'once' && key === fullKey))) {
+                    if (!excluded && matchesEventDate(key, ev.cycle, d)) {
                         events.push({ name: ev.name, type: ev.type, category: 'user', eventKey: key, shared: false, cycle: ev.cycle });
                     }
                 }
@@ -6532,6 +6586,7 @@
         var events = [];
         var shortKey = formatDateKey(d, false);
         var fullKey = formatDateKey(d, true);
+        var dayKey = formatDayKey(d);
         
         // Загруженные из CSV дни рождения
         if (DB.birthdays) {
@@ -6548,8 +6603,7 @@
                 var ev = DB.sharedCalendarEvents[key];
                 if (typeof ev === 'object' && ev.type === 'birthday') {
                     var excluded = ev.excludeDates && ev.excludeDates.indexOf(fullKey) !== -1;
-                    if (!excluded && ((ev.cycle === 'yearly' && key === shortKey) || 
-                        (ev.cycle === 'once' && key === fullKey) || (key === shortKey))) {
+                    if (!excluded && (matchesEventDate(key, ev.cycle, d) || (key === shortKey))) {
                         events.push({ name: ev.name, type: 'birthday', category: 'birthday', isUserCreated: true, eventKey: key, shared: true, cycle: ev.cycle || 'yearly' });
                     }
                 }
@@ -6562,8 +6616,7 @@
                 var ev = DB.events[key];
                 if (typeof ev === 'object' && ev.type === 'birthday') {
                     var excluded = ev.excludeDates && ev.excludeDates.indexOf(fullKey) !== -1;
-                    if (!excluded && ((ev.cycle === 'yearly' && key === shortKey) || 
-                        (ev.cycle === 'once' && key === fullKey) || (key === shortKey))) {
+                    if (!excluded && (matchesEventDate(key, ev.cycle, d) || (key === shortKey))) {
                         events.push({ name: ev.name, type: 'birthday', category: 'birthday', isUserCreated: true, eventKey: key, shared: false, cycle: ev.cycle || 'yearly' });
                     }
                 }
@@ -6578,6 +6631,7 @@
         var events = [];
         var shortKey = formatDateKey(d, false);
         var fullKey = formatDateKey(d, true);
+        var dayKey = formatDayKey(d);
         
         // Общие рабочие задачи от админа
         if (DB.sharedCalendarEvents) {
@@ -6585,8 +6639,7 @@
                 var ev = DB.sharedCalendarEvents[key];
                 if (typeof ev === 'object' && ev.type === 'work') {
                     var excluded = ev.excludeDates && ev.excludeDates.indexOf(fullKey) !== -1;
-                    if (!excluded && ((ev.cycle === 'yearly' && key === shortKey) || 
-                        (ev.cycle === 'once' && key === fullKey))) {
+                    if (!excluded && matchesEventDate(key, ev.cycle, d)) {
                         events.push({ name: ev.name, desc: ev.desc || 'Общая задача', type: 'work', category: 'work', color: 'purple', isUserCreated: true, eventKey: key, shared: true, cycle: ev.cycle });
                     }
                 }
@@ -6599,8 +6652,7 @@
                 var ev = DB.events[key];
                 if (typeof ev === 'object' && ev.type === 'work') {
                     var excluded = ev.excludeDates && ev.excludeDates.indexOf(fullKey) !== -1;
-                    if (!excluded && ((ev.cycle === 'yearly' && key === shortKey) || 
-                        (ev.cycle === 'once' && key === fullKey))) {
+                    if (!excluded && matchesEventDate(key, ev.cycle, d)) {
                         events.push({ name: ev.name, desc: ev.desc || 'Личная задача', type: 'work', category: 'work', color: 'teal', isUserCreated: true, eventKey: key, shared: false, cycle: ev.cycle });
                     }
                 }
@@ -6928,6 +6980,7 @@
                 '</select>' +
                 '<select id="newEventCycle">' +
                     '<option value="once">Однократно</option>' +
+                    '<option value="monthly">Ежемесячно</option>' +
                     '<option value="yearly">Ежегодно</option>' +
                 '</select>' +
             '</div>' +
@@ -6945,12 +6998,13 @@
         var ev = store ? store[key] : null;
         var cycle = ev ? ev.cycle : 'once';
         
-        if (cycle === 'yearly') {
-            // Ежегодное событие — спрашиваем
+        if (cycle === 'yearly' || cycle === 'monthly') {
+            // Повторяющееся событие — спрашиваем
+            var cycleLabel = cycle === 'yearly' ? 'ежегодно' : 'ежемесячно';
             var choice = prompt(
-                'Событие "' + name + '" повторяется ежегодно.\n\n' +
+                'Событие "' + name + '" повторяется ' + cycleLabel + '.\n\n' +
                 '1 — Удалить только на эту дату\n' +
-                '2 — Удалить полностью (на все годы)\n' +
+                '2 — Удалить полностью (все повторения)\n' +
                 '0 — Отмена\n\nВведите 1 или 2:', '1');
             
             if (choice === '1') {
@@ -7014,7 +7068,10 @@
             return;
         }
         
-        var key = cycle === 'yearly' ? dateKey.substring(5) : dateKey; // MM-DD для yearly, YYYY-MM-DD для once
+        var key;
+        if (cycle === 'yearly') key = dateKey.substring(5); // MM-DD
+        else if (cycle === 'monthly') key = 'D-' + dateKey.substring(8); // D-DD (prefix to avoid collisions)
+        else key = dateKey; // YYYY-MM-DD для once
         
         var sharedEl = document.getElementById('newEventShared');
         var isShared = isAdmin() && sharedEl && sharedEl.checked;
