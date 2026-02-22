@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>УРРУ Планировщик</title>
+    <title>Инструкция начальника УРРУ</title>
     <style>
         :root {
             --bg-primary: #f8fafc;
@@ -3913,7 +3913,7 @@
                     <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
                 </div>
                 <h1>УРРУ</h1>
-                <p>Методичка начальника участка</p>
+                <p>Инструкция начальника УРРУ</p>
             </div>
             <div class="auth-card">
                 <h3 style="text-align:center;margin-bottom:16px;font-size:16px;color:#334155">Вход в систему</h3>
@@ -3948,7 +3948,7 @@
                     </div>
                     <div class="logo-text">
                         <div class="logo-title">УРРУ</div>
-                        <div class="logo-subtitle">Планировщик</div>
+                        <div class="logo-subtitle">Инструкция начальника УРРУ</div>
                     </div>
                 </div>
             </div>
@@ -4118,7 +4118,6 @@
                         </div>
                     </div>
                     <button class="btn" onclick="openCalendarModal()">Календарь</button>
-                    <button class="btn" id="btnExport">Экспорт</button>
                     <button class="btn btn-primary" id="btnSave">Сохранить</button>
                 </div>
             </header>
@@ -4486,7 +4485,8 @@
         workTasks: null,
         progress: {},
         sharedNormDocs: null,
-        sharedLawsDocs: null
+        sharedLawsDocs: null,
+        sharedCalendarEvents: null
     };
 
     // Load from localStorage
@@ -6528,7 +6528,26 @@
         var shortKey = formatDateKey(d, false);
         var fullKey = formatDateKey(d, true);
         
-        // Ручные события пользователя (кроме birthday и work - они в своих категориях)
+        // Общие события от админа (видны всем)
+        if (DB.sharedCalendarEvents) {
+            Object.keys(DB.sharedCalendarEvents).forEach(function(key) {
+                var ev = DB.sharedCalendarEvents[key];
+                if (typeof ev === 'object' && ev.type !== 'birthday' && ev.type !== 'work') {
+                    if ((ev.cycle === 'yearly' && key === shortKey) || 
+                        (ev.cycle === 'once' && key === fullKey)) {
+                        events.push({ 
+                            name: ev.name, 
+                            type: ev.type, 
+                            category: 'user',
+                            eventKey: key,
+                            shared: true
+                        });
+                    }
+                }
+            });
+        }
+        
+        // Личные события пользователя (кроме birthday и work - они в своих категориях)
         if (DB.events) {
             Object.keys(DB.events).forEach(function(key) {
                 var ev = DB.events[key];
@@ -6539,7 +6558,8 @@
                             name: ev.name, 
                             type: ev.type, 
                             category: 'user',
-                            eventKey: key
+                            eventKey: key,
+                            shared: false
                         });
                     }
                 }
@@ -6557,34 +6577,33 @@
         // Загруженные из CSV дни рождения
         if (DB.birthdays) {
             DB.birthdays.forEach(function(b) {
-                // Проверяем оба формата: MM-DD и YYYY-MM-DD
                 if (b.date === shortKey || b.date === fullKey || b.date.substring(5) === shortKey) {
-                    events.push({ 
-                        name: b.name, 
-                        type: 'birthday', 
-                        category: 'birthday',
-                        position: b.position 
-                    });
+                    events.push({ name: b.name, type: 'birthday', category: 'birthday', position: b.position });
                 }
             });
         }
         
-        // Ручные события типа birthday (созданные пользователем)
+        // Общие события типа birthday от админа
+        if (DB.sharedCalendarEvents) {
+            Object.keys(DB.sharedCalendarEvents).forEach(function(key) {
+                var ev = DB.sharedCalendarEvents[key];
+                if (typeof ev === 'object' && ev.type === 'birthday') {
+                    if ((ev.cycle === 'yearly' && key === shortKey) || 
+                        (ev.cycle === 'once' && key === fullKey) || (key === shortKey)) {
+                        events.push({ name: ev.name, type: 'birthday', category: 'birthday', isUserCreated: true, eventKey: key, shared: true });
+                    }
+                }
+            });
+        }
+        
+        // Личные события типа birthday
         if (DB.events) {
             Object.keys(DB.events).forEach(function(key) {
                 var ev = DB.events[key];
                 if (typeof ev === 'object' && ev.type === 'birthday') {
-                    // yearly события сохраняются как MM-DD, once как YYYY-MM-DD
                     if ((ev.cycle === 'yearly' && key === shortKey) || 
-                        (ev.cycle === 'once' && key === fullKey) ||
-                        (key === shortKey)) { // обратная совместимость
-                        events.push({ 
-                            name: ev.name, 
-                            type: 'birthday', 
-                            category: 'birthday',
-                            isUserCreated: true,
-                            eventKey: key
-                        });
+                        (ev.cycle === 'once' && key === fullKey) || (key === shortKey)) {
+                        events.push({ name: ev.name, type: 'birthday', category: 'birthday', isUserCreated: true, eventKey: key, shared: false });
                     }
                 }
             });
@@ -6672,21 +6691,27 @@
         var shortKey = formatDateKey(d, false);
         var fullKey = formatDateKey(d, true);
         
+        // Общие рабочие задачи от админа
+        if (DB.sharedCalendarEvents) {
+            Object.keys(DB.sharedCalendarEvents).forEach(function(key) {
+                var ev = DB.sharedCalendarEvents[key];
+                if (typeof ev === 'object' && ev.type === 'work') {
+                    if ((ev.cycle === 'yearly' && key === shortKey) || 
+                        (ev.cycle === 'once' && key === fullKey)) {
+                        events.push({ name: ev.name, desc: 'Общая задача', type: 'work', category: 'work', color: 'purple', isUserCreated: true, eventKey: key, shared: true });
+                    }
+                }
+            });
+        }
+        
+        // Личные рабочие задачи
         if (DB.events) {
             Object.keys(DB.events).forEach(function(key) {
                 var ev = DB.events[key];
                 if (typeof ev === 'object' && ev.type === 'work') {
                     if ((ev.cycle === 'yearly' && key === shortKey) || 
                         (ev.cycle === 'once' && key === fullKey)) {
-                        events.push({
-                            name: ev.name,
-                            desc: 'Пользовательская задача',
-                            type: 'work',
-                            category: 'work',
-                            color: 'teal',
-                            isUserCreated: true,
-                            eventKey: key
-                        });
+                        events.push({ name: ev.name, desc: 'Личная задача', type: 'work', category: 'work', color: 'teal', isUserCreated: true, eventKey: key, shared: false });
                     }
                 }
             });
@@ -6938,7 +6963,7 @@
                         '</div>';
                     // Кнопка удаления только для пользовательских задач
                     if (e.isUserCreated) {
-                        html += '<button class="btn-event-delete" onclick="deleteEventByKey(\''+e.eventKey+'\', \''+e.name.replace(/'/g, "\\'")+'\')" title="Удалить">×</button>';
+                        html += '<button class="btn-event-delete" onclick="deleteEventByKey(\''+e.eventKey+'\', \''+e.name.replace(/'/g, "\\'")+'\',' + (e.shared ? 'true' : 'false') + ')" title="Удалить">×</button>';
                     }
                     html += '</div>';
                 });
@@ -6962,15 +6987,17 @@
             
             // Пользовательские события
             if (userEvents.length > 0) {
-                html += '<div class="day-events-section"><div class="day-events-title user">Пользовательские события</div><div class="day-events">';
+                html += '<div class="day-events-section"><div class="day-events-title user">События</div><div class="day-events">';
                 userEvents.forEach(function(e) {
+                    var sharedLabel = e.shared ? '<span style="font-size:10px;padding:1px 6px;background:#f3e8ff;color:#7c3aed;border-radius:8px;font-weight:600">общее</span>' : '<span style="font-size:10px;padding:1px 6px;background:#dbeafe;color:#2563eb;border-radius:8px;font-weight:600">личное</span>';
+                    var canDelete = e.shared ? isAdmin() : true;
                     html += '<div class="day-event-item">' +
                         '<div class="day-event-icon '+e.type+'">'+getEventIcon(e.type)+'</div>' +
                         '<div class="day-event-info">' +
-                            '<strong>'+e.name+'</strong>' +
+                            '<strong>'+e.name+' '+sharedLabel+'</strong>' +
                             '<span>'+getEventTypeName(e.type)+'</span>' +
                         '</div>' +
-                        '<button class="btn-event-delete" onclick="deleteEventByKey(\''+e.eventKey+'\', \''+e.name.replace(/'/g, "\\'")+'\')" title="Удалить">×</button>' +
+                        (canDelete ? '<button class="btn-event-delete" onclick="deleteEventByKey(\''+e.eventKey+'\', \''+e.name.replace(/'/g, "\\'")+'\',' + (e.shared ? 'true' : 'false') + ')" title="Удалить">×</button>' : '') +
                     '</div>';
                 });
                 html += '</div></div>';
@@ -6988,7 +7015,8 @@
                         '</div>';
                     // Кнопка удаления только для пользовательских ДР
                     if (e.isUserCreated) {
-                        html += '<button class="btn-event-delete" onclick="deleteEventByKey(\''+e.eventKey+'\', \''+e.name.replace(/'/g, "\\'")+'\')" title="Удалить">×</button>';
+                        var canDelBday = e.shared ? isAdmin() : true;
+                        if (canDelBday) html += '<button class="btn-event-delete" onclick="deleteEventByKey(\''+e.eventKey+'\', \''+e.name.replace(/'/g, "\\'")+'\',' + (e.shared ? 'true' : 'false') + ')" title="Удалить">×</button>';
                     }
                     html += '</div>';
                 });
@@ -7013,6 +7041,7 @@
                     '<option value="yearly">Ежегодно</option>' +
                 '</select>' +
             '</div>' +
+            (isAdmin() ? '<div style="margin:8px 0"><label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="newEventShared" checked> <span style="color:var(--accent-purple);font-weight:600">Для всех пользователей</span></label></div>' : '') +
             '<button class="btn btn-primary" onclick="addEvent()">Добавить</button>' +
         '</div>';
         
@@ -7020,15 +7049,18 @@
         document.getElementById('dayModal').classList.add('show');
     };
     
-    window.deleteEventByKey = function(key, name) {
+    window.deleteEventByKey = function(key, name, isSharedEvent) {
         if (!confirm('Удалить событие "'+name+'"?')) return;
         
-        // Удаляем из ручных событий
-        if (DB.events && DB.events[key]) {
+        if (isSharedEvent && isAdmin() && DB.sharedCalendarEvents && DB.sharedCalendarEvents[key]) {
+            delete DB.sharedCalendarEvents[key];
+            save();
+            saveSharedPlans();
+        } else if (DB.events && DB.events[key]) {
             delete DB.events[key];
+            save();
         }
         
-        save();
         renderWeekCalendar();
         
         // Перерисовываем модалку
@@ -7053,15 +7085,25 @@
             return;
         }
         
-        if (!DB.events) DB.events = {};
-        
         var key = cycle === 'yearly' ? dateKey.substring(5) : dateKey; // MM-DD для yearly, YYYY-MM-DD для once
         
-        DB.events[key] = { name: name, type: type, cycle: cycle };
-        save();
+        var sharedEl = document.getElementById('newEventShared');
+        var isShared = isAdmin() && sharedEl && sharedEl.checked;
+        
+        if (isShared) {
+            if (!DB.sharedCalendarEvents) DB.sharedCalendarEvents = {};
+            DB.sharedCalendarEvents[key] = { name: name, type: type, cycle: cycle };
+            save();
+            saveSharedPlans();
+        } else {
+            if (!DB.events) DB.events = {};
+            DB.events[key] = { name: name, type: type, cycle: cycle };
+            save();
+        }
+        
         renderWeekCalendar();
         closeDayModal();
-        toast('Событие добавлено', true);
+        toast('Событие добавлено' + (isShared ? ' (для всех)' : ''), true);
     };
     
     window.openCalendarModal = function() {
@@ -7318,14 +7360,6 @@
 
         // Buttons
         document.getElementById('btnSave').onclick = function() { save(); toast('Сохранено!', true); };
-        document.getElementById('btnExport').onclick = function() {
-            var blob = new Blob([JSON.stringify(DB, null, 2)], {type: 'application/json'});
-            var a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = 'urru-backup.json';
-            a.click();
-            toast('Экспортировано!', true);
-        };
 
         render();
         renderWeekCalendar();
@@ -7689,6 +7723,7 @@
             };
             if (DB.sharedNormDocs) data.normDocs = JSON.stringify(DB.sharedNormDocs);
             if (DB.sharedLawsDocs) data.lawsDocs = JSON.stringify(DB.sharedLawsDocs);
+            if (DB.sharedCalendarEvents) data.calendarEvents = JSON.stringify(DB.sharedCalendarEvents);
             db.collection('config').doc('sharedPlans').set(data, { merge: true });
             console.log('Shared plans saved');
         } catch(e) {
@@ -7707,6 +7742,7 @@
                     if (d.operational) DB.operational = JSON.parse(d.operational);
                     if (d.normDocs) DB.sharedNormDocs = JSON.parse(d.normDocs);
                     if (d.lawsDocs) DB.sharedLawsDocs = JSON.parse(d.lawsDocs);
+                    if (d.calendarEvents) DB.sharedCalendarEvents = JSON.parse(d.calendarEvents);
                     console.log('Shared plans loaded');
                 } catch(e) {
                     console.warn('Shared plans parse error:', e);
@@ -7758,6 +7794,7 @@
                         var sharedOperational = window._sharedPlansExist ? DB.operational : null;
                         var sharedNormDocs = window._sharedPlansExist ? DB.sharedNormDocs : null;
                         var sharedLawsDocs = window._sharedPlansExist ? DB.sharedLawsDocs : null;
+                        var sharedCalendarEvents = window._sharedPlansExist ? DB.sharedCalendarEvents : null;
                         
                         Object.assign(DB, cloudDB);
                         
@@ -7767,6 +7804,7 @@
                         if (sharedOperational) DB.operational = sharedOperational;
                         if (sharedNormDocs) DB.sharedNormDocs = sharedNormDocs;
                         if (sharedLawsDocs) DB.sharedLawsDocs = sharedLawsDocs;
+                        if (sharedCalendarEvents) DB.sharedCalendarEvents = sharedCalendarEvents;
                         
                         localStorage.setItem('urru', JSON.stringify(DB));
                     }
@@ -7912,7 +7950,7 @@
         h += '<div class="mobile-home-header">';
         h += '<div class="mobile-home-logo">âš¡</div>';
         h += '<div class="mobile-home-title">УРРУ</div>';
-        h += '<div class="mobile-home-sub">Методичка начальника участка</div>';
+        h += '<div class="mobile-home-sub">Инструкция начальника УРРУ</div>';
         h += '<div class="mobile-home-date">' + dateStr + ' • Выполнено ' + pctAll + '%</div>';
         h += '</div>';
         
