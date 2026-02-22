@@ -3198,6 +3198,7 @@
             animation: authSpin 0.8s linear infinite;
         }
         @keyframes authSpin { to { transform: rotate(360deg); } }
+        @keyframes spin { to { transform: rotate(360deg); } }
         .auth-loading p { color: #94a3b8; margin-top: 16px; font-size: 14px; }
 
     
@@ -5000,6 +5001,15 @@
         openAccordions = {};
         var c = document.getElementById('content');
         
+        // Show loader until cloud data is ready (skip for guest mode)
+        if (!window._cloudLoaded && !isGuest && db) {
+            c.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 20px;gap:16px">' +
+                '<div style="width:40px;height:40px;border:3px solid var(--border-color);border-top-color:var(--accent-blue);border-radius:50%;animation:spin 0.8s linear infinite"></div>' +
+                '<div style="color:var(--text-muted);font-size:14px">Загрузка данных из облака...</div>' +
+            '</div>';
+            return;
+        }
+
         if (currentPage === 'admin') { renderAdminPanel(); return; }
         if (currentPage === 'dashboard') { renderDashboard(); return; }
         if (currentPage === 'overview') c.innerHTML = renderOverview();
@@ -7325,6 +7335,20 @@
         // Показываем уведомления о сбросе после загрузки
         setTimeout(showResetNotifications, 500);
     });
+
+    // Flag: cloud data loaded
+    window._cloudLoaded = false;
+
+    // Fallback: if cloud doesn't load in 5s, render anyway
+    setTimeout(function() {
+        if (!window._cloudLoaded && !isGuest && db) {
+            console.warn('Cloud load timeout — rendering with local data');
+            window._cloudLoaded = true;
+            render();
+            renderWeekCalendar();
+            updateCounters();
+        }
+    }, 5000);
     
     // ========== SIDEBAR TOGGLE ==========
     window.toggleSidebar = function() {
@@ -7753,6 +7777,7 @@
                         localStorage.setItem('urru_user', d.userSettings);
                     }
                     // Re-render
+                    window._cloudLoaded = true;
                     checkAndResetProgress();
                     render();
                     renderWeekCalendar();
@@ -7766,9 +7791,12 @@
                     }
                 } catch(e) {
                     console.warn('Parse error:', e);
+                    window._cloudLoaded = true;
+                    render();
                 }
             } else {
                 // No user doc yet — just render shared plans
+                window._cloudLoaded = true;
                 localStorage.setItem('urru', JSON.stringify(DB));
                 checkAndResetProgress();
                 render();
@@ -7778,6 +7806,8 @@
             }
         }).catch(function(err) {
             console.warn('Firestore load error:', err);
+            window._cloudLoaded = true;
+            render();
         });
     }
 
