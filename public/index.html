@@ -3787,6 +3787,17 @@
             transition: background 0.15s;
         }
         .tech-card-file-link:hover { background: #a7f3d0; }
+        .tech-card-doc-link {
+            display: flex; align-items: center; gap: 8px;
+            margin: 10px 0 14px; padding: 10px 16px;
+            background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px;
+            color: #1d4ed8; font-size: 13px; font-weight: 500;
+            text-decoration: none; cursor: pointer;
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .tech-card-doc-link:hover { background: #dbeafe; border-color: #93c5fd; }
+        .tech-card-doc-link svg { stroke: currentColor; fill: none; stroke-width: 2; flex-shrink: 0; }
+        .tech-card-doc-link span { flex: 1; }
         .normative-add-card {
             border: 2px dashed var(--border-color);
             border-radius: var(--radius);
@@ -6420,8 +6431,18 @@
                 html += '<div class="tech-card-arrow"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>' +
                 '</div>' +
                 '<div class="tech-card-body" id="techCardBody' + card.id + '">' +
-                    '<div class="tech-card-fullname">' + card.fullTitle + '</div>' +
-                    '<div class="tech-card-sections">';
+                    '<div class="tech-card-fullname">' + card.fullTitle + '</div>';
+
+                // Document link button inside expanded card
+                if (card.pdfUrl) {
+                    html += '<a class="tech-card-doc-link" href="' + card.pdfUrl.replace(/'/g, '&#39;') + '" target="_blank">' +
+                        '<svg viewBox="0 0 24 24" width="16" height="16"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' +
+                        '<span>Просмотр оригинала документа</span>' +
+                        '<svg viewBox="0 0 24 24" width="14" height="14"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>' +
+                    '</a>';
+                }
+
+                html += '<div class="tech-card-sections">';
 
                 if (card.sections) {
                     card.sections.forEach(function(section) {
