@@ -3954,7 +3954,7 @@
     </style>
 
     <!-- Firebase SDK -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js" onerror="window._firebaseLoadFailed=true"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js" onerror="window._firebaseLoadFailed=true"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js" onerror="window._firebaseLoadFailed=true"></script>
@@ -5884,7 +5884,7 @@
         document.getElementById('instructionModal').classList.remove('show');
     };
 
-    // Export task to Excel (real XLSX via SheetJS)
+    // Export task to Excel (real XLSX via ExcelJS with full styling)
     window.exportTaskExcel = function(type, catIdx, taskId) {
         var task = findTaskById(type, catIdx, taskId);
         if (!task) return;
@@ -5893,40 +5893,115 @@
         var today = new Date();
         var dateStr = String(today.getDate()).padStart(2,'0') + '.' + String(today.getMonth()+1).padStart(2,'0') + '.' + today.getFullYear();
 
-        var data = [
-            ['Задача', task.title],
-            ['Описание', task.desc || '\u2014'],
-            ['План', planName],
-            ['Срок', task.deadline || '\u2014'],
-            ['Норматив', task.norm || '\u2014'],
-            ['Ответственный', task.resp || '\u2014'],
-            ['Дата выдачи', dateStr],
-            ['Статус', DB.progress[task.id] ? 'Выполнено' : 'В работе']
-        ];
+        var wb = new ExcelJS.Workbook();
+        var ws = wb.addWorksheet('Задача');
 
+        ws.getColumn(1).width = 22;
+        ws.getColumn(2).width = 60;
+
+        var borderMedium = {
+            top: { style: 'medium', color: { argb: 'FF000000' } },
+            bottom: { style: 'medium', color: { argb: 'FF000000' } },
+            left: { style: 'medium', color: { argb: 'FF000000' } },
+            right: { style: 'medium', color: { argb: 'FF000000' } }
+        };
+        var fontLabel = { name: 'Arial', size: 9, bold: true };
+        var fontValue = { name: 'Arial', size: 9, bold: false };
+        var fontTitle = { name: 'Arial', size: 13, bold: true };
+        var fillGray = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8E8E8' } };
+        var fillBlue = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDBEAFE' } };
+        var fillGreen = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD1FAE5' } };
+        var alignTop = { vertical: 'top', wrapText: true };
+        var alignCenter = { vertical: 'top', horizontal: 'center', wrapText: true };
+
+        // Title row
+        var titleRow = ws.addRow(['Задание: ' + task.title]);
+        ws.mergeCells('A1:B1');
+        titleRow.getCell(1).font = fontTitle;
+        titleRow.getCell(1).alignment = { wrapText: true };
+        titleRow.height = 28;
+
+        // Empty row
+        ws.addRow([]);
+
+        // Helper: add label-value row with gray label background
+        function addInfoRow(label, value) {
+            var row = ws.addRow([label, value]);
+            row.getCell(1).font = fontLabel;
+            row.getCell(1).fill = fillGray;
+            row.getCell(1).border = borderMedium;
+            row.getCell(1).alignment = alignTop;
+            row.getCell(2).font = fontValue;
+            row.getCell(2).border = borderMedium;
+            row.getCell(2).alignment = alignTop;
+            return row;
+        }
+
+        addInfoRow('Задача', task.title);
+        addInfoRow('Описание', task.desc || '\u2014');
+        addInfoRow('План', planName);
+        addInfoRow('Срок', task.deadline || '\u2014');
+        addInfoRow('Норматив', task.norm || '\u2014');
+        addInfoRow('Ответственный', task.resp || '\u2014');
+        addInfoRow('Дата выдачи', dateStr);
+        addInfoRow('Статус', DB.progress[task.id] ? 'Выполнено' : 'В работе');
+
+        // Steps section
         if (task.steps && task.steps.length > 0) {
-            data.push(['', '']);
-            data.push(['Порядок выполнения', '']);
+            var hdrRow = ws.addRow(['Порядок выполнения']);
+            ws.mergeCells('A' + hdrRow.number + ':B' + hdrRow.number);
+            hdrRow.getCell(1).font = fontLabel;
+            hdrRow.getCell(1).fill = fillBlue;
+            hdrRow.getCell(1).border = borderMedium;
+            hdrRow.getCell(1).alignment = alignCenter;
+
             task.steps.forEach(function(step, i) {
-                data.push([String(i + 1), step]);
+                var sRow = ws.addRow([String(i + 1), step]);
+                sRow.getCell(1).font = fontLabel;
+                sRow.getCell(1).border = borderMedium;
+                sRow.getCell(1).alignment = alignCenter;
+                sRow.getCell(2).font = fontValue;
+                sRow.getCell(2).border = borderMedium;
+                sRow.getCell(2).alignment = alignTop;
             });
         }
 
+        // Result section
         if (task.result) {
-            data.push(['', '']);
-            data.push(['Результат', task.result]);
+            var resRow = ws.addRow(['Результат', task.result]);
+            resRow.getCell(1).font = fontLabel;
+            resRow.getCell(1).fill = fillGreen;
+            resRow.getCell(1).border = borderMedium;
+            resRow.getCell(1).alignment = alignTop;
+            resRow.getCell(2).font = fontValue;
+            resRow.getCell(2).border = borderMedium;
+            resRow.getCell(2).alignment = alignTop;
         }
 
-        data.push(['', '']);
-        data.push(['Исполнитель', '']);
-        data.push(['Подпись', '']);
+        // Signature rows
+        var exRow = ws.addRow(['Исполнитель', '']);
+        exRow.getCell(1).font = fontLabel;
+        exRow.getCell(1).fill = fillGray;
+        exRow.getCell(1).border = borderMedium;
+        exRow.getCell(1).alignment = alignTop;
+        exRow.getCell(2).border = borderMedium;
 
-        var ws = XLSX.utils.aoa_to_sheet(data);
-        ws['!cols'] = [{ wch: 22 }, { wch: 60 }];
-        var wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Задача');
-        XLSX.writeFile(wb, 'Задача_' + task.id + '.xlsx');
-        toast('Задача выгружена в Excel');
+        var sigRow = ws.addRow(['Подпись', '']);
+        sigRow.getCell(1).font = fontLabel;
+        sigRow.getCell(1).fill = fillGray;
+        sigRow.getCell(1).border = borderMedium;
+        sigRow.getCell(1).alignment = alignTop;
+        sigRow.getCell(2).border = borderMedium;
+
+        wb.xlsx.writeBuffer().then(function(buffer) {
+            var blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'Задача_' + task.id + '.xlsx';
+            a.click();
+            URL.revokeObjectURL(a.href);
+            toast('Задача выгружена в Excel');
+        });
     };
 
     // ========== NORMATIVE DOCS ADMIN ==========
