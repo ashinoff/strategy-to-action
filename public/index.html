@@ -3778,17 +3778,24 @@
         }
         .normative-card-edit svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; }
         .normative-card:hover .normative-card-edit { display: flex; }
-        .tech-card:hover .normative-card-edit { display: flex; }
-        .tech-card:hover .normative-card-delete { display: flex; }
-        .tech-card .normative-card-edit { right: 76px; top: 50%; transform: translateY(-50%); }
-        .tech-card .normative-card-delete { right: 44px; top: 50%; transform: translateY(-50%); }
-        .tech-card-file-link {
-            display: flex; align-items: center; justify-content: center;
-            width: 32px; height: 32px; border-radius: 6px;
-            color: #059669; background: #d1fae5; flex-shrink: 0;
-            transition: background 0.15s;
+        .tech-card:hover .tech-card-actions { opacity: 1; }
+        .tech-card-actions {
+            display: flex; align-items: center; gap: 6px;
+            opacity: 0; transition: opacity 0.15s;
+            margin-left: auto; flex-shrink: 0;
         }
-        .tech-card-file-link:hover { background: #a7f3d0; }
+        .tech-action-btn {
+            display: flex; align-items: center; justify-content: center;
+            width: 30px; height: 30px; border-radius: 6px;
+            border: none; cursor: pointer; text-decoration: none;
+        }
+        .tech-action-btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; }
+        .tech-action-download { background: #d1fae5; color: #059669; }
+        .tech-action-download:hover { background: #a7f3d0; }
+        .tech-action-edit { background: #dbeafe; color: #2563eb; }
+        .tech-action-edit:hover { background: #bfdbfe; }
+        .tech-action-delete { background: #fee2e2; color: #dc2626; }
+        .tech-action-delete:hover { background: #fecaca; }
         .tech-card-doc-link {
             display: flex; align-items: center; gap: 8px;
             margin: 10px 0 14px; padding: 10px 16px;
@@ -6413,24 +6420,26 @@
                 var card = item.card;
                 var gi = item.globalIdx;
 
-                html += '<div class="tech-card" data-id="' + card.id + '" style="position:relative">';
-
-                // Admin buttons
-                if (isAdmin()) {
-                    html += '<button class="normative-card-edit" onclick="event.stopPropagation();editTechCard(' + gi + ')" title="Редактировать"><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>';
-                    html += '<button class="normative-card-delete" onclick="event.stopPropagation();deleteTechCard(' + gi + ')" title="Удалить"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>';
-                }
+                html += '<div class="tech-card" data-id="' + card.id + '">';
 
                 html += '<div class="tech-card-header" onclick="toggleTechCard(' + card.id + ')">' +
                     '<div class="tech-card-num">' + card.id + '</div>' +
-                    '<div class="tech-card-title">' + card.title + '</div>';
+                    '<div class="tech-card-title">' + card.title + '</div>' +
+                    '<div class="tech-card-actions">';
 
-                // File link icon
+                // Download button (only when URL exists)
                 if (card.pdfUrl) {
-                    html += '<a class="tech-card-file-link" href="' + card.pdfUrl.replace(/'/g, '&#39;') + '" target="_blank" onclick="event.stopPropagation()" title="Скачать файл"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></a>';
+                    html += '<a class="tech-action-btn tech-action-download" href="' + card.pdfUrl.replace(/'/g, '&#39;') + '" target="_blank" onclick="event.stopPropagation()" title="Выгрузить техкарту"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></a>';
                 }
 
-                html += '<div class="tech-card-arrow"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>' +
+                // Admin edit/delete buttons
+                if (isAdmin()) {
+                    html += '<button class="tech-action-btn tech-action-edit" onclick="event.stopPropagation();editTechCard(' + gi + ')" title="Редактировать"><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>';
+                    html += '<button class="tech-action-btn tech-action-delete" onclick="event.stopPropagation();deleteTechCard(' + gi + ')" title="Удалить"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>';
+                }
+
+                html += '</div>' +
+                    '<div class="tech-card-arrow"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>' +
                 '</div>' +
                 '<div class="tech-card-body" id="techCardBody' + card.id + '">' +
                     '<div class="tech-card-fullname">' + card.fullTitle + '</div>';
