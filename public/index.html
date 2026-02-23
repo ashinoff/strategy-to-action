@@ -1405,7 +1405,7 @@
             background: var(--bg-primary);
             border: 1px solid var(--border-color);
             border-radius: var(--radius);
-            cursor: pointer;
+            cursor: default;
             transition: var(--transition);
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
             position: relative;
@@ -1449,7 +1449,9 @@
             margin-top: 1px;
             transition: var(--transition);
             background: white;
+            cursor: pointer;
         }
+        .task-check:hover { transform: scale(1.15); }
         
         .task-item:nth-child(6n+1) .task-check { border-color: #fbbf24; }
         .task-item:nth-child(6n+2) .task-check { border-color: #60a5fa; }
@@ -3573,6 +3575,75 @@
         .task-delete-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
         .task-delete-btn:hover { background: #fee2e2; border-color: #fecaca; color: #dc2626; }
 
+        .task-actions { display: flex; gap: 4px; align-items: center; flex-shrink: 0; margin-left: auto; }
+        .task-action-btn {
+            width: 30px; height: 30px; min-width: 30px;
+            display: flex; align-items: center; justify-content: center;
+            background: transparent; border: 1px solid transparent; border-radius: 6px;
+            color: var(--text-muted); cursor: pointer; transition: var(--transition);
+        }
+        .task-action-btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; }
+        .task-action-btn.btn-instruction:hover { background: #dbeafe; border-color: #bfdbfe; color: #2563eb; }
+        .task-action-btn.btn-instruction.has-steps { color: #2563eb; }
+        .task-action-btn.btn-export:hover { background: #d1fae5; border-color: #a7f3d0; color: #059669; }
+
+        /* Instruction modal */
+        .instruction-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center;
+            z-index: 10000; padding: 20px;
+        }
+        .instruction-overlay.show { display: flex; }
+        .instruction-box {
+            background: var(--bg-card); border-radius: 16px; width: 100%; max-width: 560px;
+            max-height: 85vh; overflow-y: auto; box-shadow: 0 24px 48px rgba(0,0,0,0.2);
+        }
+        .instruction-header {
+            padding: 20px 24px 16px; border-bottom: 1px solid var(--border-color);
+            display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+        }
+        .instruction-header h3 { font-size: 16px; font-weight: 600; line-height: 1.4; }
+        .instruction-header-close {
+            width: 32px; height: 32px; min-width: 32px; display: flex; align-items: center; justify-content: center;
+            background: transparent; border: none; border-radius: 8px; cursor: pointer;
+            font-size: 20px; color: var(--text-muted);
+        }
+        .instruction-header-close:hover { background: var(--bg-hover); }
+        .instruction-body { padding: 20px 24px 24px; }
+        .instruction-desc { font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.5; }
+        .instruction-section-title {
+            font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+            color: var(--text-muted); margin-bottom: 10px; margin-top: 16px;
+        }
+        .instruction-steps { list-style: none; padding: 0; margin: 0; }
+        .instruction-step {
+            display: flex; gap: 12px; padding: 10px 0;
+            border-bottom: 1px solid var(--border-light);
+        }
+        .instruction-step:last-child { border-bottom: none; }
+        .instruction-step-num {
+            width: 26px; height: 26px; min-width: 26px; border-radius: 50%;
+            background: var(--accent-purple); color: white; font-size: 12px; font-weight: 700;
+            display: flex; align-items: center; justify-content: center; margin-top: 1px;
+        }
+        .instruction-step-text { font-size: 14px; color: var(--text-primary); line-height: 1.5; }
+        .instruction-result {
+            padding: 14px 16px; background: #f0fdf4; border: 1px solid #bbf7d0;
+            border-radius: 10px; font-size: 13px; color: #15803d; line-height: 1.5; margin-top: 8px;
+        }
+        .instruction-empty {
+            padding: 32px 20px; text-align: center; color: var(--text-muted); font-size: 14px;
+        }
+        .instruction-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+        .instruction-footer { padding: 12px 24px 20px; display: flex; gap: 8px; justify-content: flex-end; }
+        .instruction-footer button {
+            padding: 8px 16px; border-radius: 8px; font-size: 13px; cursor: pointer; border: 1px solid var(--border-color);
+            background: var(--bg-card); color: var(--text-primary); transition: var(--transition);
+        }
+        .instruction-footer button:hover { background: var(--bg-hover); }
+        .instruction-footer button.primary { background: var(--accent-purple); color: white; border-color: var(--accent-purple); }
+        .instruction-footer button.primary:hover { opacity: 0.9; }
+
         /* Dashboard drill-down RES card */
         .res-card-clickable {
             cursor: pointer !important;
@@ -4313,6 +4384,19 @@
     </div>
 
     <!-- Admin: Add Task Modal -->
+    <!-- Instruction View Modal -->
+    <div class="instruction-overlay" id="instructionModal" onclick="if(event.target===this)closeInstruction()">
+        <div class="instruction-box">
+            <div class="instruction-header">
+                <h3 id="instructionTitle">Инструкция</h3>
+                <button class="instruction-header-close" onclick="closeInstruction()">×</button>
+            </div>
+            <div class="instruction-body" id="instructionBody"></div>
+            <div class="instruction-footer" id="instructionFooter"></div>
+        </div>
+    </div>
+
+    <!-- Admin Add Task Modal -->
     <div class="admin-modal-overlay" id="adminTaskModal" onclick="if(event.target===this)closeAdminTaskModal()">
         <div class="admin-modal-box">
             <div class="admin-modal-box-header">
@@ -4340,11 +4424,20 @@
                     <label>Ответственный</label>
                     <input type="text" id="adminTaskResp" placeholder="Начальник УРРУ / Инженер">
                 </div>
+                <div class="admin-form-group">
+                    <label>Пошаговая инструкция</label>
+                    <textarea id="adminTaskSteps" rows="4" placeholder="Каждый шаг с новой строки:&#10;1. Открыть 1С СУТЭ&#10;2. Выгрузить отчёт&#10;3. Отправить начальнику"></textarea>
+                </div>
+                <div class="admin-form-group">
+                    <label>Ожидаемый результат</label>
+                    <input type="text" id="adminTaskResult" placeholder="Что должно получиться на выходе">
+                </div>
                 <input type="hidden" id="adminTaskType">
                 <input type="hidden" id="adminTaskCatIdx">
+                <input type="hidden" id="adminTaskEditId">
                 <div class="admin-form-actions">
                     <button onclick="closeAdminTaskModal()">Отмена</button>
-                    <button class="btn-primary" onclick="saveAdminTask()">Добавить</button>
+                    <button class="btn-primary" id="adminTaskSaveBtn" onclick="saveAdminTask()">Добавить</button>
                 </div>
             </div>
         </div>
@@ -5119,8 +5212,8 @@
 
     function renderTask(t, showResp) {
         var done = DB.progress[t.id];
-        var html = '<div class="task-item '+(done?'done':'')+'" onclick="toggle(\''+t.id+'\', event)">' +
-            '<div class="task-check '+(done?'checked':'')+'"></div>' +
+        var html = '<div class="task-item '+(done?'done':'')+'">' +
+            '<div class="task-check '+(done?'checked':'')+'" onclick="toggle(\''+t.id+'\', event)"></div>' +
             '<div class="task-content">' +
                 '<div class="task-title">'+t.title+'</div>' +
                 (t.desc?'<div class="task-desc">'+t.desc+'</div>':'') +
@@ -5223,8 +5316,9 @@
         var html = '<div class="task-list">';
         cat.tasks.forEach(function(t) {
             var done = DB.progress[t.id];
-            html += '<div class="task-item '+(done?'done':'')+'" onclick="toggle(\''+t.id+'\', event)">' +
-                '<div class="task-check '+(done?'checked':'')+'"></div>' +
+            var hasSteps = t.steps && t.steps.length > 0;
+            html += '<div class="task-item '+(done?'done':'')+'">' +
+                '<div class="task-check '+(done?'checked':'')+'" onclick="toggle(\''+t.id+'\', event)"></div>' +
                 '<div class="task-content">' +
                     '<div class="task-title">'+t.title+'</div>' +
                     (t.desc?'<div class="task-desc">'+t.desc+'</div>':'') +
@@ -5234,7 +5328,11 @@
                         (t.norm?'<span class="task-tag norm">'+t.norm+'</span>':'') +
                     '</div>' +
                 '</div>' +
-                (isAdmin() ? '<button class="task-delete-btn" onclick="deleteAdminTask(\''+type+'\',\''+idx+'\',\''+t.id+'\',event)" title="Удалить задачу"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>' : '') +
+                '<div class="task-actions">' +
+                    '<button class="task-action-btn btn-instruction'+(hasSteps?' has-steps':'')+'" onclick="showInstruction(\''+type+'\','+idx+',\''+t.id+'\')" title="Инструкция"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></button>' +
+                    '<button class="task-action-btn btn-export" onclick="exportTaskExcel(\''+type+'\','+idx+',\''+t.id+'\')" title="Выгрузить задачу"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>' +
+                    (isAdmin() ? '<button class="task-delete-btn" onclick="deleteAdminTask(\''+type+'\',\''+idx+'\',\''+t.id+'\',event)" title="Удалить задачу"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>' : '') +
+                '</div>' +
             '</div>';
         });
         html += '</div>';
@@ -5419,13 +5517,18 @@
         var html = '<div class="task-list">';
         section.items.forEach(function(i) {
             var done = DB.progress[i.id];
-            html += '<div class="task-item '+(done?'done':'')+'" onclick="toggle(\''+i.id+'\', event)">' +
-                '<div class="task-check '+(done?'checked':'')+'"></div>' +
+            var hasSteps = i.steps && i.steps.length > 0;
+            html += '<div class="task-item '+(done?'done':'')+'">' +
+                '<div class="task-check '+(done?'checked':'')+'" onclick="toggle(\''+i.id+'\', event)"></div>' +
                 '<div class="task-content">' +
                     '<div class="task-title">'+(i.req?'<span class="task-required">*</span> ':'')+i.title+'</div>' +
                     (i.desc?'<div class="task-desc">'+i.desc+'</div>':'') +
                 '</div>' +
-                (isAdmin() ? '<button class="task-delete-btn" onclick="deleteAdminTask(\'operational\',\''+catIdx+'\',\''+i.id+'\',event)" title="Удалить задачу"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>' : '') +
+                '<div class="task-actions">' +
+                    '<button class="task-action-btn btn-instruction'+(hasSteps?' has-steps':'')+'" onclick="showInstruction(\'operational\',\''+catIdx+'\',\''+i.id+'\')" title="Инструкция"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></button>' +
+                    '<button class="task-action-btn btn-export" onclick="exportTaskExcel(\'operational\',\''+catIdx+'\',\''+i.id+'\')" title="Выгрузить задачу"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>' +
+                    (isAdmin() ? '<button class="task-delete-btn" onclick="deleteAdminTask(\'operational\',\''+catIdx+'\',\''+i.id+'\',event)" title="Удалить задачу"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>' : '') +
+                '</div>' +
             '</div>';
         });
         html += '</div>';
@@ -5572,14 +5675,29 @@
     };
 
     // Open task creation modal
-    window.openAdminTaskModal = function(type, catIdx) {
-        document.getElementById('adminTaskTitle').value = '';
-        document.getElementById('adminTaskDesc').value = '';
-        document.getElementById('adminTaskDeadline').value = '';
-        document.getElementById('adminTaskNorm').value = '';
-        document.getElementById('adminTaskResp').value = '';
+    window.openAdminTaskModal = function(type, catIdx, editId) {
+        var task = null;
+        var isEdit = !!editId;
+        
+        if (isEdit) {
+            task = findTaskById(type, catIdx, editId);
+        }
+        
+        document.getElementById('adminTaskTitle').value = task ? (task.title || '') : '';
+        document.getElementById('adminTaskDesc').value = task ? (task.desc || '') : '';
+        document.getElementById('adminTaskDeadline').value = task ? (task.deadline || '') : '';
+        document.getElementById('adminTaskNorm').value = task ? (task.norm || '') : '';
+        document.getElementById('adminTaskResp').value = task ? (task.resp || '') : '';
+        document.getElementById('adminTaskSteps').value = task && task.steps ? task.steps.join('\n') : '';
+        document.getElementById('adminTaskResult').value = task ? (task.result || '') : '';
         document.getElementById('adminTaskType').value = type;
         document.getElementById('adminTaskCatIdx').value = catIdx;
+        document.getElementById('adminTaskEditId').value = editId || '';
+        
+        var header = document.querySelector('#adminTaskModal .admin-modal-box-header h3');
+        if (header) header.textContent = isEdit ? 'Редактировать задачу' : 'Добавить задачу';
+        document.getElementById('adminTaskSaveBtn').textContent = isEdit ? 'Сохранить' : 'Добавить';
+        
         document.getElementById('adminTaskModal').classList.add('show');
         setTimeout(function(){ document.getElementById('adminTaskTitle').focus(); }, 100);
     };
@@ -5591,6 +5709,7 @@
     window.saveAdminTask = function() {
         var type = document.getElementById('adminTaskType').value;
         var catIdx = document.getElementById('adminTaskCatIdx').value;
+        var editId = document.getElementById('adminTaskEditId').value;
         var title = document.getElementById('adminTaskTitle').value.trim();
         if (!title) { document.getElementById('adminTaskTitle').style.borderColor='#dc2626'; return; }
 
@@ -5598,32 +5717,49 @@
         var deadline = document.getElementById('adminTaskDeadline').value.trim();
         var norm = document.getElementById('adminTaskNorm').value.trim();
         var resp = document.getElementById('adminTaskResp').value.trim();
+        var stepsRaw = document.getElementById('adminTaskSteps').value.trim();
+        var steps = stepsRaw ? stepsRaw.split('\n').map(function(s) { return s.replace(/^\d+[\.\)\-]\s*/, '').trim(); }).filter(Boolean) : [];
+        var result = document.getElementById('adminTaskResult').value.trim();
 
-        // Generate unique ID
-        var prefix = type === 'strategic' ? 'С' : type === 'tactical' ? 'Т' : 'О';
-        var newId = prefix + '-' + Date.now().toString(36).toUpperCase();
-
-        if (type === 'operational') {
-            // catIdx is "phaseIdx_sectionIdx"
-            var parts = catIdx.split('_');
-            var phaseIdx = parseInt(parts[0]);
-            var sectionIdx = parseInt(parts[1]);
-            if (!DB.operational[phaseIdx] || !DB.operational[phaseIdx].sections[sectionIdx]) return;
-            DB.operational[phaseIdx].sections[sectionIdx].items.push({
-                id: newId,
-                title: title,
-                desc: desc || undefined,
-                req: false
-            });
+        if (editId) {
+            // Edit existing task
+            var task = findTaskById(type, catIdx, editId);
+            if (task) {
+                task.title = title;
+                task.desc = desc || undefined;
+                task.deadline = deadline || undefined;
+                task.norm = norm || undefined;
+                task.resp = resp || undefined;
+                task.steps = steps.length > 0 ? steps : undefined;
+                task.result = result || undefined;
+            }
         } else {
-            var idx = parseInt(catIdx);
-            if (!DB[type] || !DB[type][idx]) return;
-            var task = { id: newId, title: title };
-            if (desc) task.desc = desc;
-            if (deadline) task.deadline = deadline;
-            if (norm) task.norm = norm;
-            if (resp) task.resp = resp;
-            DB[type][idx].tasks.push(task);
+            // Create new task
+            var prefix = type === 'strategic' ? 'С' : type === 'tactical' ? 'Т' : 'О';
+            var newId = prefix + '-' + Date.now().toString(36).toUpperCase();
+
+            if (type === 'operational') {
+                var parts = catIdx.split('_');
+                var phaseIdx = parseInt(parts[0]);
+                var sectionIdx = parseInt(parts[1]);
+                if (!DB.operational[phaseIdx] || !DB.operational[phaseIdx].sections[sectionIdx]) return;
+                var item = { id: newId, title: title, req: false };
+                if (desc) item.desc = desc;
+                if (steps.length) item.steps = steps;
+                if (result) item.result = result;
+                DB.operational[phaseIdx].sections[sectionIdx].items.push(item);
+            } else {
+                var idx = parseInt(catIdx);
+                if (!DB[type] || !DB[type][idx]) return;
+                var task = { id: newId, title: title };
+                if (desc) task.desc = desc;
+                if (deadline) task.deadline = deadline;
+                if (norm) task.norm = norm;
+                if (resp) task.resp = resp;
+                if (steps.length) task.steps = steps;
+                if (result) task.result = result;
+                DB[type][idx].tasks.push(task);
+            }
         }
 
         save();
@@ -5638,7 +5774,7 @@
             openCategory(type, parseInt(catIdx));
         }
         updateCounters();
-        toast('Задача добавлена');
+        toast(editId ? 'Задача обновлена' : 'Задача добавлена');
     };
 
     // Delete a task
@@ -5676,6 +5812,123 @@
 
     // Current modal context for admin
     var _adminModalCtx = { type: '', catIdx: '' };
+
+    // Helper: find task by type/catIdx/taskId
+    function findTaskById(type, catIdx, taskId) {
+        if (type === 'operational') {
+            var parts = String(catIdx).split('_');
+            var phaseIdx = parseInt(parts[0]);
+            var sectionIdx = parseInt(parts[1]);
+            if (!DB.operational[phaseIdx] || !DB.operational[phaseIdx].sections[sectionIdx]) return null;
+            var items = DB.operational[phaseIdx].sections[sectionIdx].items;
+            for (var i = 0; i < items.length; i++) { if (items[i].id === taskId) return items[i]; }
+        } else {
+            var idx = parseInt(catIdx);
+            if (!DB[type] || !DB[type][idx]) return null;
+            var tasks = DB[type][idx].tasks;
+            for (var i = 0; i < tasks.length; i++) { if (tasks[i].id === taskId) return tasks[i]; }
+        }
+        return null;
+    }
+
+    // Show instruction modal
+    window.showInstruction = function(type, catIdx, taskId) {
+        var task = findTaskById(type, catIdx, taskId);
+        if (!task) return;
+        
+        document.getElementById('instructionTitle').textContent = task.title;
+        
+        var html = '';
+        if (task.desc) html += '<div class="instruction-desc">' + task.desc + '</div>';
+        
+        if (task.steps && task.steps.length > 0) {
+            html += '<div class="instruction-section-title">Порядок выполнения</div>';
+            html += '<ol class="instruction-steps">';
+            task.steps.forEach(function(step, i) {
+                html += '<li class="instruction-step"><span class="instruction-step-num">' + (i+1) + '</span><span class="instruction-step-text">' + step + '</span></li>';
+            });
+            html += '</ol>';
+        }
+        
+        if (task.result) {
+            html += '<div class="instruction-section-title">Ожидаемый результат</div>';
+            html += '<div class="instruction-result">' + task.result + '</div>';
+        }
+        
+        if (task.deadline || task.norm || task.resp) {
+            html += '<div class="instruction-tags">';
+            if (task.deadline) html += '<span class="task-tag deadline">' + task.deadline + '</span>';
+            if (task.resp) html += '<span class="task-tag">' + task.resp + '</span>';
+            if (task.norm) html += '<span class="task-tag norm">' + task.norm + '</span>';
+            html += '</div>';
+        }
+        
+        if (!task.steps && !task.result) {
+            html += '<div class="instruction-empty">Инструкция ещё не заполнена' + (isAdmin() ? '<br>Нажмите «Редактировать» чтобы добавить шаги' : '') + '</div>';
+        }
+        
+        document.getElementById('instructionBody').innerHTML = html;
+        
+        // Footer with admin edit button
+        var footer = '';
+        if (isAdmin()) {
+            footer += '<button class="primary" onclick="closeInstruction();openAdminTaskModal(\'' + type + '\',\'' + catIdx + '\',\'' + taskId + '\')">Редактировать</button>';
+        }
+        document.getElementById('instructionFooter').innerHTML = footer;
+        
+        document.getElementById('instructionModal').classList.add('show');
+    };
+
+    window.closeInstruction = function() {
+        document.getElementById('instructionModal').classList.remove('show');
+    };
+
+    // Export task to Excel (HTML table → .xls)
+    window.exportTaskExcel = function(type, catIdx, taskId) {
+        var task = findTaskById(type, catIdx, taskId);
+        if (!task) return;
+        
+        var planName = type === 'strategic' ? 'Стратегический' : type === 'tactical' ? 'Тактический' : 'Оперативный';
+        var today = new Date();
+        var dateStr = String(today.getDate()).padStart(2,'0') + '.' + String(today.getMonth()+1).padStart(2,'0') + '.' + today.getFullYear();
+        
+        var rows = '';
+        rows += '<tr><td style="font-weight:bold;background:#e8e8e8">Задача</td><td>' + task.title + '</td></tr>';
+        rows += '<tr><td style="font-weight:bold;background:#e8e8e8">Описание</td><td>' + (task.desc || '—') + '</td></tr>';
+        rows += '<tr><td style="font-weight:bold;background:#e8e8e8">План</td><td>' + planName + '</td></tr>';
+        rows += '<tr><td style="font-weight:bold;background:#e8e8e8">Срок</td><td>' + (task.deadline || '—') + '</td></tr>';
+        rows += '<tr><td style="font-weight:bold;background:#e8e8e8">Норматив</td><td>' + (task.norm || '—') + '</td></tr>';
+        rows += '<tr><td style="font-weight:bold;background:#e8e8e8">Ответственный</td><td>' + (task.resp || '—') + '</td></tr>';
+        rows += '<tr><td style="font-weight:bold;background:#e8e8e8">Дата выдачи</td><td>' + dateStr + '</td></tr>';
+        rows += '<tr><td style="font-weight:bold;background:#e8e8e8">Статус</td><td>' + (DB.progress[task.id] ? 'Выполнено' : 'В работе') + '</td></tr>';
+        
+        if (task.steps && task.steps.length > 0) {
+            rows += '<tr><td colspan="2" style="font-weight:bold;background:#dbeafe;text-align:center">Порядок выполнения</td></tr>';
+            task.steps.forEach(function(step, i) {
+                rows += '<tr><td style="text-align:center;font-weight:bold">' + (i+1) + '</td><td>' + step + '</td></tr>';
+            });
+        }
+        
+        if (task.result) {
+            rows += '<tr><td style="font-weight:bold;background:#d1fae5">Результат</td><td>' + task.result + '</td></tr>';
+        }
+        
+        rows += '<tr><td style="font-weight:bold;background:#e8e8e8">Исполнитель</td><td style="border-bottom:1px solid #000;min-width:200px"></td></tr>';
+        rows += '<tr><td style="font-weight:bold;background:#e8e8e8">Подпись</td><td style="border-bottom:1px solid #000"></td></tr>';
+        
+        var html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">' +
+            '<head><meta charset="utf-8"><style>td{padding:6px 10px;border:1px solid #ccc;font-family:Arial;font-size:12px;vertical-align:top}</style></head>' +
+            '<body><h3 style="font-family:Arial">Задание: ' + task.title + '</h3>' +
+            '<table cellspacing="0" cellpadding="0">' + rows + '</table></body></html>';
+        
+        var blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8' });
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'Задача_' + task.id + '.xls';
+        a.click();
+        URL.revokeObjectURL(a.href);
+        toast('Задача выгружена в Excel');
+    };
 
     // ========== NORMATIVE DOCS ADMIN ==========
     window.openAdminNormModal = function() {
