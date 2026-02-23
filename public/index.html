@@ -4118,7 +4118,6 @@
                         </div>
                     </div>
                     <button class="btn" onclick="openCalendarModal()">Календарь</button>
-                    <button class="btn btn-primary" id="btnSave">Сохранить</button>
                 </div>
             </header>
             <div class="content" id="content"></div>
@@ -7338,9 +7337,6 @@
         loadFile(document.getElementById('f4'), 'terms', document.getElementById('s4'));
         loadFile(document.getElementById('f5'), 'normative', document.getElementById('s5'));
         loadFile(document.getElementById('f6'), 'procedures', document.getElementById('s6'));
-
-        // Buttons
-        document.getElementById('btnSave').onclick = function() { save(); toast('Сохранено!', true); };
 
         render();
         renderWeekCalendar();
