@@ -4118,6 +4118,26 @@
                     </ul>
                 </div>
 
+                <div class="nav-section" id="navReportsSection">
+                    <div class="nav-section-title">Отчёты</div>
+                    <ul class="nav-list">
+                        <li><a class="nav-link" data-page="opros" data-tooltip="Опрос ПУ">
+                            <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span>
+                            <span class="nav-text">Опрос</span>
+                        </a></li>
+                        <li><a class="nav-link" data-page="mpi" data-tooltip="МПИ">
+                            <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+                            <span class="nav-text">МПИ</span>
+                            <span class="nav-badge">скоро</span>
+                        </a></li>
+                        <li><a class="nav-link" data-page="poteri" data-tooltip="Потери">
+                            <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></span>
+                            <span class="nav-text">Потери</span>
+                            <span class="nav-badge">скоро</span>
+                        </a></li>
+                    </ul>
+                </div>
+
                 <div class="nav-section">
                     <div class="nav-section-title">Справочник</div>
                     <ul class="nav-list">
@@ -4371,6 +4391,7 @@
                             <option value="admin_ia">Админ ИА (видит все РЭС)</option>
                             <option value="zam_riru">Зам РИРУ (видит РЭС предприятия)</option>
                             <option value="nachalnik_urru">Начальник УРРУ</option>
+                            <option value="engineer">Инженер</option>
                         </select>
                     </div>
                     <div class="settings-field" id="settingsEnterpriseWrap">
@@ -4674,7 +4695,7 @@
         "Усть-Лабинские ЭС": ["Тбилисский РЭС","Кореновский РЭС","Усть-Лабинский РЭС","Выселковский РЭС"],
         "Юго-Западные ЭС": ["Геленджикский РЭС","Абинский РЭС","Крымский РЭС","Новороссийский РЭС","Анапский РЭС"]
     };
-    var ROLE_LABELS = {'admin_ia':'Админ ИА','zam_riru':'Зам РИРУ','nachalnik_urru':'Начальник УРРУ'};
+    var ROLE_LABELS = {'admin_ia':'Админ ИА','zam_riru':'Зам РИРУ','nachalnik_urru':'Начальник УРРУ','engineer':'Инженер'};
     var userRole = null, userEnterprise = null, userRES = null;
     var SUPERADMIN_EMAIL = 'adam-ashinoff@mail.ru';
     var isSuperAdmin = false;
@@ -5196,6 +5217,8 @@
         
         if (currentPage === 'admin') { renderAdminPanel(); return; }
         if (currentPage === 'dashboard') { renderDashboard(); return; }
+        if (currentPage === 'opros') { renderOpros(); return; }
+        if (currentPage === 'mpi' || currentPage === 'poteri') { c.innerHTML = '<div style="text-align:center;padding:60px;color:var(--text-muted)"><h2 style="font-size:20px;margin-bottom:8px">Раздел в разработке</h2><p>Скоро здесь появится отчёт</p></div>'; return; }
         if (currentPage === 'overview') c.innerHTML = renderOverview();
         else if (currentPage === 'strategic') c.innerHTML = renderStrategic();
         else if (currentPage === 'tactical') c.innerHTML = renderTactical();
@@ -5223,6 +5246,8 @@
 
         if (currentPage === 'admin') { renderAdminPanel(); return; }
         if (currentPage === 'dashboard') { renderDashboard(); return; }
+        if (currentPage === 'opros') { renderOpros(); return; }
+        if (currentPage === 'mpi' || currentPage === 'poteri') { c.innerHTML = '<div style="text-align:center;padding:60px;color:var(--text-muted)"><h2 style="font-size:20px;margin-bottom:8px">Раздел в разработке</h2><p>Скоро здесь появится отчёт</p></div>'; return; }
         if (currentPage === 'overview') c.innerHTML = renderOverview();
         else if (currentPage === 'strategic') c.innerHTML = renderStrategic();
         else if (currentPage === 'tactical') c.innerHTML = renderTactical();
@@ -8285,7 +8310,10 @@
         terms: 'Технология',
         normative: 'Нормативка',
         laws: 'Законы',
-        procedures: 'Процедуры'
+        procedures: 'Процедуры',
+        opros: 'Опрос ПУ',
+        mpi: 'МПИ',
+        poteri: 'Потери'
     };
     
     function getMobileStats(type) {
@@ -8697,6 +8725,251 @@
         document.getElementById('resDrillModal').classList.remove('show');
     };
 
+    // ========== REPORTS: ОПРОС ПУ ==========
+    var _oprosData = null;
+
+    function renderOpros() {
+        var c = document.getElementById('content');
+        if (!c) return;
+        var canUpload = (userRole === 'engineer' || userRole === 'admin_ia' || isSuperAdmin);
+        var svgChart = '<svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>';
+        var h = '<div class="page-header"><div class="page-header-top"><div class="page-header-icon" style="background:var(--accent-purple)">' + svgChart + '</div><div><div class="page-header-title"><h1>Опрос ПУ</h1><span class="page-header-badge" style="background:var(--accent-purple)">Пирамида</span></div><p style="color:var(--text-secondary);font-size:14px;margin-top:4px">Процент и количество опроса приборов учёта по РЭС</p></div></div></div>';
+        if (canUpload) {
+            h += '<div class="overview-card" style="cursor:default;margin-top:20px;padding:20px">';
+            h += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px"><div class="overview-card-icon green" style="width:32px;height:32px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div><h3 style="font-size:15px;font-weight:600">Загрузить отчёт</h3></div>';
+            h += '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">';
+            h += '<label style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:var(--accent-blue);color:#fff;border-radius:var(--radius-sm);cursor:pointer;font-size:13px;font-weight:600;transition:var(--transition)" onmouseover="this.style.opacity=\'0.9\'" onmouseout="this.style.opacity=\'1\'"><svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Выбрать .xlsx<input type="file" accept=".xlsx,.xls" id="oprosFileInput" onchange="handleOprosUpload(this)" style="display:none"></label>';
+            h += '<span id="oprosUploadStatus" style="font-size:13px;color:var(--text-muted)"></span>';
+            h += '</div></div>';
+        }
+        h += '<div id="oprosReportBody" style="margin-top:20px"><div style="text-align:center;padding:40px;color:var(--text-muted)">Загрузка данных...</div></div>';
+        c.innerHTML = h;
+        loadOprosFromFirestore();
+    }
+
+    function handleOprosUpload(input) {
+        var file = input.files[0];
+        if (!file) return;
+        var statusEl = document.getElementById('oprosUploadStatus');
+        statusEl.textContent = 'Обработка файла...';
+        statusEl.style.color = 'var(--accent-blue)';
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                var wb = new ExcelJS.Workbook();
+                wb.xlsx.load(e.target.result).then(function() {
+                    var parsed = parseOprosWorkbook(wb);
+                    if (!parsed) { statusEl.textContent = 'Ошибка: не удалось распознать формат файла'; statusEl.style.color = '#ef4444'; return; }
+                    saveOprosToFirestore(parsed, statusEl);
+                }).catch(function(err) { statusEl.textContent = 'Ошибка чтения: ' + err.message; statusEl.style.color = '#ef4444'; });
+            } catch(err) { statusEl.textContent = 'Ошибка: ' + err.message; statusEl.style.color = '#ef4444'; }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    function parseOprosWorkbook(wb) {
+        var sheetPct = wb.getWorksheet('%') || wb.getWorksheet(1);
+        var sheetCnt = wb.getWorksheet('кол-во') || wb.getWorksheet(2);
+        if (!sheetPct || !sheetCnt) return null;
+
+        // Parse dates from % sheet row 1
+        var datesRow = sheetPct.getRow(1);
+        var dates2026 = [];
+        var dateColMap = {};
+        for (var col = 5; col <= sheetPct.columnCount; col++) {
+            var val = datesRow.getCell(col).value;
+            if (val instanceof Date && val.getFullYear() >= 2026) {
+                var ds = val.toISOString().split('T')[0];
+                dates2026.push({ col: col, date: ds });
+                dateColMap[ds] = col;
+            }
+        }
+
+        // Parse dates from кол-во sheet row 1
+        var cntDatesRow = sheetCnt.getRow(1);
+        var cntDateColMap = {};
+        for (var col = 5; col <= sheetCnt.columnCount; col++) {
+            var val = cntDatesRow.getCell(col).value;
+            if (val instanceof Date && val.getFullYear() >= 2026) {
+                cntDateColMap[val.toISOString().split('T')[0]] = col;
+            }
+        }
+
+        function parseBlock(sheet, sheetCntRef, startRow, endRow, cntStartRow) {
+            var rows = [];
+            var enterprise = '';
+            for (var r = startRow; r <= endRow; r++) {
+                var row = sheet.getRow(r);
+                var area = row.getCell(1).value;
+                if (!area || String(area).trim() === '') continue;
+                if (String(area).indexOf('/') === -1) continue;
+                var parts = String(area).split('/');
+                if (!enterprise) enterprise = parts[0].trim();
+                var resName = parts.length > 1 ? parts[1].trim() : area;
+                var total = Number(row.getCell(2).value) || 0;
+                var polled = Number(row.getCell(3).value) || 0;
+                var unpolled = Number(row.getCell(4).value) || 0;
+                // Get corresponding count row
+                var cntRow = sheetCntRef.getRow(cntStartRow + (r - startRow));
+                var weekly = [];
+                dates2026.forEach(function(d) {
+                    var pct = Number(row.getCell(d.col).value) || 0;
+                    var cnt = 0;
+                    if (cntDateColMap[d.date]) cnt = Number(cntRow.getCell(cntDateColMap[d.date]).value) || 0;
+                    weekly.push({ date: d.date, pct: pct, count: cnt });
+                });
+                rows.push({ res: resName, total: total, polled: polled, unpolled: unpolled, weekly: weekly });
+            }
+            // Calculate totals
+            var totals = { res: 'ИТОГО', total: 0, polled: 0, unpolled: 0, weekly: [] };
+            dates2026.forEach(function(d, i) {
+                var sumCnt = 0;
+                rows.forEach(function(r) { totals.total = totals.total || 0; sumCnt += (r.weekly[i] ? r.weekly[i].count : 0); });
+                totals.weekly.push({ date: d.date, pct: 0, count: sumCnt });
+            });
+            rows.forEach(function(r) { totals.total += r.total; totals.polled += r.polled; totals.unpolled += r.unpolled; });
+            totals.weekly.forEach(function(w, i) {
+                var totalAll = 0, polledAll = 0;
+                rows.forEach(function(r) { totalAll += r.total; polledAll += r.total - (r.weekly[i] ? r.weekly[i].count : 0); });
+                w.pct = totalAll > 0 ? polledAll / totalAll : 0;
+            });
+            return { enterprise: enterprise, rows: rows, totals: totals };
+        }
+
+        // Find block boundaries by scanning for header rows
+        var block1Start = 3, block1End = 3, block2Start = 0, block2End = 0;
+        for (var r = 3; r <= sheetPct.rowCount; r++) {
+            var val = sheetPct.getRow(r).getCell(1).value;
+            if (val && String(val).indexOf('/') !== -1) {
+                if (!block2Start) block1End = r;
+                else block2End = r;
+            }
+            if (val && String(val).indexOf('Область') !== -1 && r > 5) {
+                block2Start = r + 1;
+            }
+        }
+        if (!block2End) block2End = block2Start ? sheetPct.rowCount : 0;
+
+        var cntBlock2Start = 0;
+        for (var r = 3; r <= sheetCnt.rowCount; r++) {
+            var val = sheetCnt.getRow(r).getCell(1).value;
+            if (val && String(val).indexOf('Область') !== -1 && r > 5) { cntBlock2Start = r + 1; break; }
+        }
+
+        var general = parseBlock(sheetPct, sheetCnt, block1Start, block1End, 3);
+        var spodes = block2Start ? parseBlock(sheetPct, sheetCnt, block2Start, block2End, cntBlock2Start) : null;
+
+        return {
+            enterprise: general.enterprise || (userEnterprise || ''),
+            dates: dates2026.map(function(d) { return d.date; }),
+            general: general,
+            spodes: spodes,
+            uploadedBy: currentUser ? currentUser.email : '',
+            uploadedAt: new Date().toISOString()
+        };
+    }
+
+    function saveOprosToFirestore(data, statusEl) {
+        if (!db) { statusEl.textContent = 'Нет подключения к базе данных'; statusEl.style.color = '#ef4444'; return; }
+        var entName = data.enterprise || userEnterprise || 'unknown';
+        var docData = {
+            enterprise: entName,
+            dates: data.dates,
+            general: JSON.stringify(data.general),
+            spodes: data.spodes ? JSON.stringify(data.spodes) : null,
+            uploadedBy: data.uploadedBy,
+            uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        db.collection('reports_opros').doc(entName).set(docData, { merge: true }).then(function() {
+            statusEl.textContent = '✅ Данные загружены: ' + entName + ' (' + data.dates.length + ' дат, ' + (data.general.rows.length) + ' РЭС)';
+            statusEl.style.color = '#16a34a';
+            loadOprosFromFirestore();
+        }).catch(function(err) {
+            statusEl.textContent = '❌ Ошибка сохранения: ' + err.message;
+            statusEl.style.color = '#ef4444';
+        });
+    }
+
+    function loadOprosFromFirestore() {
+        var body = document.getElementById('oprosReportBody');
+        if (!body || !db) { if(body) body.innerHTML = '<div style="color:var(--text-muted);text-align:center;padding:40px">Нет подключения</div>'; return; }
+
+        // Determine which enterprises to load
+        var query;
+        if (userRole === 'admin_ia' || isSuperAdmin) {
+            query = db.collection('reports_opros').get();
+        } else {
+            var ent = userEnterprise || '';
+            if (!ent) { body.innerHTML = '<div style="color:var(--text-muted);text-align:center;padding:40px">Предприятие не задано в настройках</div>'; return; }
+            query = db.collection('reports_opros').where('enterprise', '==', ent).get();
+        }
+
+        query.then(function(snap) {
+            if (snap.empty) { body.innerHTML = '<div style="color:var(--text-muted);text-align:center;padding:40px">Нет загруженных отчётов по опросу</div>'; return; }
+            var html = '';
+            snap.forEach(function(doc) {
+                var d = doc.data();
+                var general = d.general ? JSON.parse(d.general) : null;
+                var spodes = d.spodes ? JSON.parse(d.spodes) : null;
+                var dates = d.dates || [];
+                var uploadInfo = '<span style="font-size:12px;color:var(--text-muted)">Загрузил: ' + (d.uploadedBy||'—') + '</span>';
+                html += '<div class="overview-card" style="cursor:default;padding:0;margin-bottom:20px;overflow:hidden">';
+                html += '<div style="padding:16px 20px;border-bottom:1px solid var(--border-color);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px"><h3 style="font-size:15px;font-weight:700">' + (d.enterprise||'—') + '</h3>' + uploadInfo + '</div>';
+                if (general) html += renderOprosTable('Общий опрос', general, dates);
+                if (spodes) html += renderOprosTable('СПОДЭС', spodes, dates);
+                html += '</div>';
+            });
+            body.innerHTML = html;
+        }).catch(function(err) {
+            body.innerHTML = '<div style="color:#ef4444;text-align:center;padding:40px">Ошибка загрузки: ' + err.message + '</div>';
+        });
+    }
+
+    function renderOprosTable(title, block, dates) {
+        var h = '<div style="padding:16px 20px"><h4 style="font-size:14px;font-weight:600;color:var(--accent-purple);margin-bottom:12px">' + title + '</h4>';
+        h += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap">';
+        // Header
+        h += '<thead><tr style="border-bottom:2px solid var(--border-color);background:var(--bg-hover)">';
+        h += '<th style="padding:8px 10px;text-align:left;position:sticky;left:0;background:var(--bg-hover);z-index:1;min-width:160px">РЭС</th>';
+        h += '<th style="padding:8px 6px;text-align:right">Всего</th>';
+        h += '<th style="padding:8px 6px;text-align:right">Опрос</th>';
+        h += '<th style="padding:8px 6px;text-align:right">Без опр.</th>';
+        dates.forEach(function(d) {
+            var parts = d.split('-');
+            h += '<th style="padding:8px 4px;text-align:center;font-size:11px">' + parts[2] + '.' + parts[1] + '</th>';
+        });
+        h += '</tr></thead><tbody>';
+
+        var allRows = block.rows.concat([block.totals]);
+        allRows.forEach(function(row) {
+            var isTotal = row.res === 'ИТОГО';
+            var fw = isTotal ? 'font-weight:700;' : '';
+            var bg = isTotal ? 'background:#f8fafc;' : '';
+            var border = isTotal ? 'border-top:2px solid var(--border-color);' : 'border-bottom:1px solid var(--border-color);';
+            h += '<tr style="' + border + bg + '">';
+            h += '<td style="padding:6px 10px;' + fw + 'position:sticky;left:0;background:' + (isTotal ? '#f8fafc' : 'var(--bg-card)') + ';z-index:1">' + row.res + '</td>';
+            h += '<td style="padding:6px;text-align:right;' + fw + '">' + (row.total || 0).toLocaleString('ru') + '</td>';
+            h += '<td style="padding:6px;text-align:right;' + fw + '">' + (row.polled || 0).toLocaleString('ru') + '</td>';
+            h += '<td style="padding:6px;text-align:right;' + fw + '">' + (row.unpolled || 0).toLocaleString('ru') + '</td>';
+            // Weekly data
+            if (row.weekly) {
+                row.weekly.forEach(function(w, i) {
+                    var pctVal = (w.pct * 100).toFixed(2);
+                    var prev = i > 0 && row.weekly[i-1] ? row.weekly[i-1].pct : null;
+                    var clr = '';
+                    if (prev !== null && i > 0) {
+                        if (w.pct > prev + 0.001) clr = 'background:#dcfce7;color:#166534;';
+                        else if (w.pct < prev - 0.001) clr = 'background:#fee2e2;color:#991b1b;';
+                    }
+                    h += '<td style="padding:4px;text-align:center;font-size:11px;' + fw + clr + '" title="Без опроса: ' + w.count + '">' + pctVal + '%</td>';
+                });
+            }
+            h += '</tr>';
+        });
+        h += '</tbody></table></div></div>';
+        return h;
+    }
+
     // ========== ADMIN PANEL (SuperAdmin only) ==========
     function renderAdminPanel() {
         var c = document.getElementById('content');
@@ -8711,7 +8984,7 @@
         h += '<div><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">Email</label><input type="email" id="adminNewEmail" placeholder="user@rosseti-kuban.ru" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:var(--radius-sm);font-size:14px"></div>';
         h += '<div><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">\u0412\u0440\u0435\u043c\u0435\u043d\u043d\u044b\u0439 \u043f\u0430\u0440\u043e\u043b\u044c</label><div style="position:relative"><input type="password" id="adminNewPass" placeholder="\u043c\u0438\u043d. 6 \u0441\u0438\u043c\u0432\u043e\u043b\u043e\u0432" style="width:100%;padding:10px 40px 10px 12px;border:1px solid var(--border-color);border-radius:var(--radius-sm);font-size:14px"><button type="button" onclick="togglePass(\'adminNewPass\', this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:4px;display:flex;color:#94a3b8;outline:none" title="\u041f\u043e\u043a\u0430\u0437\u0430\u0442\u044c \u043f\u0430\u0440\u043e\u043b\u044c"><svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>';
         h += '<div><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">\u0424\u0418\u041e</label><input type="text" id="adminNewName" placeholder="\u0418\u0432\u0430\u043d\u043e\u0432 \u0418\u0432\u0430\u043d \u0418\u0432\u0430\u043d\u043e\u0432\u0438\u0447" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:var(--radius-sm);font-size:14px"></div>';
-        h += '<div><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">\u0420\u043e\u043b\u044c</label><select id="adminNewRole" onchange="onAdminRoleChange()" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:var(--radius-sm);font-size:14px;background:#fff"><option value="nachalnik_urru">\u041d\u0430\u0447\u0430\u043b\u044c\u043d\u0438\u043a \u0423\u0420\u0420\u0423</option><option value="zam_riru">\u0417\u0430\u043c \u0420\u0418\u0420\u0423</option><option value="admin_ia">\u0410\u0434\u043c\u0438\u043d \u0418\u0410</option></select></div>';
+        h += '<div><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">\u0420\u043e\u043b\u044c</label><select id="adminNewRole" onchange="onAdminRoleChange()" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:var(--radius-sm);font-size:14px;background:#fff"><option value="nachalnik_urru">\u041d\u0430\u0447\u0430\u043b\u044c\u043d\u0438\u043a \u0423\u0420\u0420\u0423</option><option value="zam_riru">\u0417\u0430\u043c \u0420\u0418\u0420\u0423</option><option value="admin_ia">\u0410\u0434\u043c\u0438\u043d \u0418\u0410</option><option value="engineer">\u0418\u043d\u0436\u0435\u043d\u0435\u0440</option></select></div>';
         h += '<div id="adminEntWrap"><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">\u041f\u0440\u0435\u0434\u043f\u0440\u0438\u044f\u0442\u0438\u0435</label><select id="adminNewEnt" onchange="onAdminEntChange()" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:var(--radius-sm);font-size:14px;background:#fff"><option value="">\u2014 \u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u2014</option></select></div>';
         h += '<div id="adminRESWrap"><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">\u0420\u042d\u0421</label><select id="adminNewRES" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:var(--radius-sm);font-size:14px;background:#fff"><option value="">\u2014 \u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u2014</option></select></div>';
         h += '</div>';
@@ -8733,7 +9006,7 @@
         if (!r) return;
         var ew = document.getElementById('adminEntWrap'), rw = document.getElementById('adminRESWrap');
         if (r.value === 'admin_ia') { ew.style.display='none'; rw.style.display='none'; }
-        else if (r.value === 'zam_riru') { ew.style.display=''; rw.style.display='none'; }
+        else if (r.value === 'zam_riru' || r.value === 'engineer') { ew.style.display=''; rw.style.display='none'; }
         else { ew.style.display=''; rw.style.display=''; }
     }
     
@@ -8757,7 +9030,7 @@
         if (!email) { showAdminResult('Введите email', false); return; }
         if (!pass || pass.length < 6) { showAdminResult('Пароль минимум 6 символов', false); return; }
         if (!role) { showAdminResult('Выберите роль', false); return; }
-        if ((role==='zam_riru'||role==='nachalnik_urru') && !ent) { showAdminResult('Выберите предприятие', false); return; }
+        if ((role==='zam_riru'||role==='nachalnik_urru'||role==='engineer') && !ent) { showAdminResult('Выберите предприятие', false); return; }
         if (role==='nachalnik_urru' && !res) { showAdminResult('Выберите РЭС', false); return; }
         
         showAdminResult('Создаю учётку...', true);
@@ -8873,7 +9146,7 @@
             
             users.forEach(function(u) {
                 var isSA = u.email && u.email.toLowerCase() === SUPERADMIN_EMAIL.toLowerCase();
-                var roleColor = u.role==='admin_ia' ? '#ef4444' : u.role==='zam_riru' ? '#f59e0b' : '#3b82f6';
+                var roleColor = u.role==='admin_ia' ? '#ef4444' : u.role==='zam_riru' ? '#f59e0b' : u.role==='engineer' ? '#8b5cf6' : '#3b82f6';
                 t += '<tr style="border-bottom:1px solid var(--border-color)">';
                 t += '<td style="padding:8px">' + (u.email||'—') + (isSA ? ' <span style="background:#ef4444;color:#fff;font-size:10px;padding:1px 5px;border-radius:4px">SA</span>' : '') + '</td>';
                 t += '<td style="padding:8px">' + (u.name||'—') + '</td>';
@@ -8927,7 +9200,7 @@
         // Пароль
         card += '<div style="margin-bottom:12px"><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">Новый пароль <span style="font-weight:400;color:var(--text-muted)">(пустое = не менять)</span></label><div style="position:relative"><input type="password" id="editUserPass" placeholder="мин. 6 символов" style="width:100%;padding:10px 40px 10px 12px;border:1px solid var(--border-color);border-radius:8px;font-size:14px;box-sizing:border-box"><button type="button" onclick="togglePass(\'editUserPass\', this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:4px;display:flex;color:#94a3b8;outline:none" title="Показать пароль"><svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>';
         // Роль
-        card += '<div style="margin-bottom:12px"><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">Роль</label><select id="editUserRole" onchange="onEditRoleChange()" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:8px;font-size:14px;background:#fff"><option value="nachalnik_urru">Начальник УРРУ</option><option value="zam_riru">Зам РИРУ</option><option value="admin_ia">Админ ИА</option></select></div>';
+        card += '<div style="margin-bottom:12px"><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">Роль</label><select id="editUserRole" onchange="onEditRoleChange()" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:8px;font-size:14px;background:#fff"><option value="nachalnik_urru">Начальник УРРУ</option><option value="zam_riru">Зам РИРУ</option><option value="admin_ia">Админ ИА</option><option value="engineer">Инженер</option></select></div>';
         // Предприятие
         card += '<div id="editEntWrap" style="margin-bottom:12px"><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">Предприятие</label><select id="editUserEnt" onchange="onEditEntChange()" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:8px;font-size:14px;background:#fff"><option value="">— Выберите —</option></select></div>';
         // РЭС
@@ -8970,7 +9243,7 @@
         if (!r) return;
         var ew = document.getElementById('editEntWrap'), rw = document.getElementById('editRESWrap');
         if (r.value === 'admin_ia') { ew.style.display='none'; rw.style.display='none'; }
-        else if (r.value === 'zam_riru') { ew.style.display=''; rw.style.display='none'; }
+        else if (r.value === 'zam_riru' || r.value === 'engineer') { ew.style.display=''; rw.style.display='none'; }
         else { ew.style.display=''; rw.style.display=''; }
     }
 
@@ -9004,7 +9277,7 @@
         }
         
         // Validation
-        if ((newRole==='zam_riru'||newRole==='nachalnik_urru') && !newEnt) { showEditResult('Выберите предприятие', false); return; }
+        if ((newRole==='zam_riru'||newRole==='nachalnik_urru'||newRole==='engineer') && !newEnt) { showEditResult('Выберите предприятие', false); return; }
         if (newRole==='nachalnik_urru' && !newRES) { showEditResult('Выберите РЭС', false); return; }
         
         // Update Firestore data
