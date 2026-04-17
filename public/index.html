@@ -3027,6 +3027,30 @@
             background: rgba(255,255,255,0.12);
             box-shadow: 0 0 0 3px rgba(234,179,8,0.15);
         }
+        .pass-wrap {
+            position: relative;
+        }
+        .pass-wrap input {
+            padding-right: 44px;
+        }
+        .pass-toggle {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            transition: color 0.2s;
+            outline: none;
+        }
+        .pass-toggle:hover { color: #eab308; }
+        .pass-toggle svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; }
         .auth-btn {
             width: 100%;
             padding: 14px;
@@ -4026,7 +4050,12 @@
                     </div>
                     <div class="auth-field">
                         <label>Пароль</label>
-                        <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
+                        <div class="pass-wrap">
+                            <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
+                            <button type="button" class="pass-toggle" onclick="togglePass('loginPassword', this)" tabindex="-1" title="Показать пароль">
+                                <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            </button>
+                        </div>
                     </div>
                     <button class="auth-btn" onclick="doLogin()">
                         <span>Войти</span>
@@ -7860,6 +7889,16 @@
         var r = document.getElementById('settingsRole').value, e = document.getElementById('settingsEnterprise').value;
         if (r==='nachalnik_urru' && e) { document.getElementById('settingsRESWrap').style.display=''; populateRESSelect('settingsRES', e); }
     }
+    function togglePass(inputId, btn) {
+        var inp = document.getElementById(inputId);
+        if (!inp) return;
+        var show = inp.type === 'password';
+        inp.type = show ? 'text' : 'password';
+        var eyeOpen = '<svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+        var eyeClosed = '<svg viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+        btn.innerHTML = show ? eyeClosed : eyeOpen;
+        btn.title = show ? 'Скрыть пароль' : 'Показать пароль';
+    }
     function doLogin() {
         var email = document.getElementById('loginEmail').value.trim();
         var pass = document.getElementById('loginPassword').value;
@@ -8607,7 +8646,7 @@
         h += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border-color)"><div class="overview-card-icon green" style="width:36px;height:36px">'+svgPlus+'</div><h3 style="font-size:16px;font-weight:600">\u0421\u043e\u0437\u0434\u0430\u0442\u044c \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044f</h3></div>';
         h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">';
         h += '<div><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">Email</label><input type="email" id="adminNewEmail" placeholder="user@rosseti-kuban.ru" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:var(--radius-sm);font-size:14px"></div>';
-        h += '<div><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">\u0412\u0440\u0435\u043c\u0435\u043d\u043d\u044b\u0439 \u043f\u0430\u0440\u043e\u043b\u044c</label><input type="text" id="adminNewPass" placeholder="\u043c\u0438\u043d. 6 \u0441\u0438\u043c\u0432\u043e\u043b\u043e\u0432" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:var(--radius-sm);font-size:14px"></div>';
+        h += '<div><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">\u0412\u0440\u0435\u043c\u0435\u043d\u043d\u044b\u0439 \u043f\u0430\u0440\u043e\u043b\u044c</label><div style="position:relative"><input type="password" id="adminNewPass" placeholder="\u043c\u0438\u043d. 6 \u0441\u0438\u043c\u0432\u043e\u043b\u043e\u0432" style="width:100%;padding:10px 40px 10px 12px;border:1px solid var(--border-color);border-radius:var(--radius-sm);font-size:14px"><button type="button" onclick="togglePass(\'adminNewPass\', this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:4px;display:flex;color:#94a3b8;outline:none" title="\u041f\u043e\u043a\u0430\u0437\u0430\u0442\u044c \u043f\u0430\u0440\u043e\u043b\u044c"><svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>';
         h += '<div><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">\u0424\u0418\u041e</label><input type="text" id="adminNewName" placeholder="\u0418\u0432\u0430\u043d\u043e\u0432 \u0418\u0432\u0430\u043d \u0418\u0432\u0430\u043d\u043e\u0432\u0438\u0447" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:var(--radius-sm);font-size:14px"></div>';
         h += '<div><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">\u0420\u043e\u043b\u044c</label><select id="adminNewRole" onchange="onAdminRoleChange()" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:var(--radius-sm);font-size:14px;background:#fff"><option value="nachalnik_urru">\u041d\u0430\u0447\u0430\u043b\u044c\u043d\u0438\u043a \u0423\u0420\u0420\u0423</option><option value="zam_riru">\u0417\u0430\u043c \u0420\u0418\u0420\u0423</option><option value="admin_ia">\u0410\u0434\u043c\u0438\u043d \u0418\u0410</option></select></div>';
         h += '<div id="adminEntWrap"><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">\u041f\u0440\u0435\u0434\u043f\u0440\u0438\u044f\u0442\u0438\u0435</label><select id="adminNewEnt" onchange="onAdminEntChange()" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:var(--radius-sm);font-size:14px;background:#fff"><option value="">\u2014 \u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u2014</option></select></div>';
@@ -8725,7 +8764,7 @@
             var users = [];
             snap.forEach(function(doc) {
                 var d = doc.data();
-                if (d.email || d.role) users.push(d);
+                if (d.email || d.role) { d._uid = doc.id; users.push(d); }
             });
             
             if (!users.length) { el.innerHTML = '<div style="color:var(--text-muted)">Нет данных</div>'; return; }
@@ -8741,6 +8780,7 @@
             t += '<th style="text-align:left;padding:8px;color:var(--text-secondary)">Роль</th>';
             t += '<th style="text-align:left;padding:8px;color:var(--text-secondary)">Предприятие</th>';
             t += '<th style="text-align:left;padding:8px;color:var(--text-secondary)">РЭС</th>';
+            t += '<th style="text-align:center;padding:8px;color:var(--text-secondary)">Действия</th>';
             t += '</tr>';
             
             users.forEach(function(u) {
@@ -8752,6 +8792,18 @@
                 t += '<td style="padding:8px"><span style="background:'+roleColor+';color:#fff;font-size:11px;padding:2px 8px;border-radius:4px">' + (ROLE_LABELS[u.role]||u.role||'—') + '</span></td>';
                 t += '<td style="padding:8px">' + (u.enterprise||'—') + '</td>';
                 t += '<td style="padding:8px">' + (u.res||'—') + '</td>';
+                t += '<td style="padding:8px;text-align:center;white-space:nowrap">';
+                if (!isSA) {
+                    var safeEmail = (u.email||'').replace(/'/g,"\\'");
+                    var safeUid = (u._uid||'').replace(/'/g,"\\'");
+                    var safeName = (u.name||u.email||'').replace(/'/g,"\\'");
+                    t += '<button onclick="adminResetPassword(\'' + safeEmail + '\')" style="padding:5px 10px;font-size:12px;background:#3b82f6;color:#fff;border:none;border-radius:6px;cursor:pointer;margin-right:4px;transition:var(--transition);display:inline-flex;align-items:center;gap:4px" onmouseover="this.style.opacity=\'0.85\'" onmouseout="this.style.opacity=\'1\'" title="Сбросить пароль"><svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;flex-shrink:0"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>Сброс</button>';
+                    t += '<button onclick="adminEditUser(\'' + safeUid + '\',\'' + safeEmail + '\',\'' + safeName + '\')" style="padding:5px 10px;font-size:12px;background:#f59e0b;color:#fff;border:none;border-radius:6px;cursor:pointer;margin-right:4px;transition:var(--transition);display:inline-flex;align-items:center;gap:4px" onmouseover="this.style.opacity=\'0.85\'" onmouseout="this.style.opacity=\'1\'" title="Редактировать"><svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;flex-shrink:0"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Ред.</button>';
+                    t += '<button onclick="adminDeleteUser(\'' + safeUid + '\',\'' + safeEmail + '\')" style="padding:5px 10px;font-size:12px;background:#ef4444;color:#fff;border:none;border-radius:6px;cursor:pointer;transition:var(--transition);display:inline-flex;align-items:center;gap:4px" onmouseover="this.style.opacity=\'0.85\'" onmouseout="this.style.opacity=\'1\'" title="Удалить учётку"><svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;flex-shrink:0"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>';
+                } else {
+                    t += '<span style="color:var(--text-muted);font-size:12px">—</span>';
+                }
+                t += '</td>';
                 t += '</tr>';
             });
             t += '</table>';
@@ -8759,6 +8811,107 @@
             el.innerHTML = t;
         }).catch(function(err) {
             el.innerHTML = '<div style="color:#ef4444">Ошибка загрузки: ' + err.message + '</div>';
+        });
+    }
+
+    // ========== ADMIN USER MANAGEMENT ==========
+    function adminResetPassword(email) {
+        if (!email) return;
+        if (!confirm('Отправить письмо для сброса пароля на\n' + email + '?')) return;
+        auth.sendPasswordResetEmail(email).then(function() {
+            alert('✅ Письмо для сброса пароля отправлено на ' + email);
+        }).catch(function(err) {
+            alert('❌ Ошибка: ' + err.message);
+        });
+    }
+
+    function adminEditUser(uid, email, name) {
+        if (!uid) return;
+        // Build modal
+        var overlay = document.createElement('div');
+        overlay.id = 'adminEditOverlay';
+        overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.2s ease';
+        var card = '<div style="background:#fff;border-radius:16px;padding:28px 32px;max-width:440px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3)">';
+        card += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px"><h3 style="font-size:17px;font-weight:700;color:var(--text-primary)">Редактирование учётки</h3><button onclick="closeAdminEdit()" style="background:none;border:none;cursor:pointer;font-size:22px;color:var(--text-muted);line-height:1">&times;</button></div>';
+        card += '<div style="margin-bottom:16px;padding:12px;background:#f1f5f9;border-radius:8px;font-size:13px;color:var(--text-secondary)"><strong>Email:</strong> ' + email + '<br><strong>ФИО:</strong> ' + (name||'—') + '</div>';
+        card += '<div style="margin-bottom:12px"><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">Новое ФИО</label><input type="text" id="editUserName" value="' + (name||'').replace(/"/g,'&quot;') + '" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:8px;font-size:14px;box-sizing:border-box"></div>';
+        card += '<div style="margin-bottom:12px"><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">Новый пароль <span style="font-weight:400;color:var(--text-muted)">(оставьте пустым, если не менять)</span></label><div style="position:relative"><input type="password" id="editUserPass" placeholder="мин. 6 символов" style="width:100%;padding:10px 40px 10px 12px;border:1px solid var(--border-color);border-radius:8px;font-size:14px;box-sizing:border-box"><button type="button" onclick="togglePass(\'editUserPass\', this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:4px;display:flex;color:#94a3b8;outline:none" title="Показать пароль"><svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>';
+        card += '<div style="margin-bottom:16px"><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">Роль</label><select id="editUserRole" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:8px;font-size:14px;background:#fff"><option value="nachalnik_urru">Начальник УРРУ</option><option value="zam_riru">Зам РИРУ</option><option value="admin_ia">Админ ИА</option></select></div>';
+        card += '<div id="adminEditResult" style="display:none;padding:10px;border-radius:8px;font-size:13px;margin-bottom:12px"></div>';
+        card += '<div style="display:flex;gap:10px;justify-content:flex-end">';
+        card += '<button onclick="closeAdminEdit()" style="padding:10px 20px;background:#f1f5f9;color:var(--text-secondary);border:none;border-radius:8px;font-size:14px;cursor:pointer;font-weight:600">Отмена</button>';
+        card += '<button onclick="adminSaveEdit(\'' + uid + '\',\'' + email.replace(/'/g,"\\'") + '\')" style="padding:10px 20px;background:var(--accent-blue);color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-weight:600">Сохранить</button>';
+        card += '</div></div>';
+        overlay.innerHTML = card;
+        document.body.appendChild(overlay);
+        
+        // Load current user data and set role
+        db.collection('users').doc(uid).get().then(function(doc) {
+            if (doc.exists) {
+                var d = doc.data();
+                var roleEl = document.getElementById('editUserRole');
+                if (roleEl && d.role) roleEl.value = d.role;
+            }
+        });
+    }
+
+    function closeAdminEdit() {
+        var ov = document.getElementById('adminEditOverlay');
+        if (ov) ov.remove();
+    }
+
+    function adminSaveEdit(uid, email) {
+        var newName = document.getElementById('editUserName').value.trim();
+        var newPass = document.getElementById('editUserPass').value;
+        var newRole = document.getElementById('editUserRole').value;
+        var resultEl = document.getElementById('adminEditResult');
+        
+        function showEditResult(msg, ok) {
+            if (!resultEl) return;
+            resultEl.style.display = '';
+            resultEl.style.background = ok ? '#dcfce7' : '#fee2e2';
+            resultEl.style.color = ok ? '#166534' : '#991b1b';
+            resultEl.textContent = msg;
+        }
+        
+        // Update Firestore data
+        var updates = { role: newRole, name: newName, position: ROLE_LABELS[newRole] || newRole };
+        
+        showEditResult('Сохраняю...', true);
+        
+        db.collection('users').doc(uid).update(updates).then(function() {
+            if (newPass && newPass.length >= 6) {
+                // Try to update password via secondary app
+                // Since we don't have the user's current password, send reset email instead
+                return auth.sendPasswordResetEmail(email).then(function() {
+                    showEditResult('✅ Данные обновлены. Письмо для смены пароля отправлено на ' + email, true);
+                });
+            } else if (newPass && newPass.length > 0 && newPass.length < 6) {
+                showEditResult('⚠️ Данные обновлены, но пароль слишком короткий (мин. 6). Пароль НЕ изменён.', false);
+                return;
+            } else {
+                showEditResult('✅ Данные успешно обновлены!', true);
+            }
+        }).then(function() {
+            setTimeout(function() {
+                loadAdminUsersList();
+            }, 500);
+            setTimeout(closeAdminEdit, 2000);
+        }).catch(function(err) {
+            showEditResult('❌ Ошибка: ' + err.message, false);
+        });
+    }
+
+    function adminDeleteUser(uid, email) {
+        if (!uid || !email) return;
+        if (!confirm('Удалить учётную запись\n' + email + '?\n\nЭто действие нельзя отменить!')) return;
+        if (!confirm('Точно удалить ' + email + '?')) return;
+        
+        db.collection('users').doc(uid).delete().then(function() {
+            alert('✅ Учётная запись ' + email + ' удалена из системы.\n\nПользователь больше не сможет войти.');
+            loadAdminUsersList();
+        }).catch(function(err) {
+            alert('❌ Ошибка удаления: ' + err.message);
         });
     }
 
