@@ -4138,6 +4138,16 @@
                     </ul>
                 </div>
 
+                <div class="nav-section" id="navAskueSection">
+                    <div class="nav-section-title">АСКУЭ</div>
+                    <ul class="nav-list">
+                        <li><a class="nav-link" data-page="board" data-tooltip="Рабочая доска">
+                            <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/></svg></span>
+                            <span class="nav-text">Рабочая доска</span>
+                        </a></li>
+                    </ul>
+                </div>
+
                 <div class="nav-section">
                     <div class="nav-section-title">Справочник</div>
                     <ul class="nav-list">
@@ -4391,7 +4401,8 @@
                             <option value="admin_ia">Админ ИА (видит все РЭС)</option>
                             <option value="zam_riru">Зам РИРУ (видит РЭС предприятия)</option>
                             <option value="nachalnik_urru">Начальник УРРУ</option>
-                            <option value="engineer">Инженер</option>
+                            <option value="engineer">Начальник АСКУЭ</option>
+                            <option value="engineer_askue">Инженер АСКУЭ</option>
                         </select>
                     </div>
                     <div class="settings-field" id="settingsEnterpriseWrap">
@@ -4695,7 +4706,7 @@
         "Усть-Лабинские ЭС": ["Тбилисский РЭС","Кореновский РЭС","Усть-Лабинский РЭС","Выселковский РЭС"],
         "Юго-Западные ЭС": ["Геленджикский РЭС","Абинский РЭС","Крымский РЭС","Новороссийский РЭС","Анапский РЭС"]
     };
-    var ROLE_LABELS = {'admin_ia':'Админ ИА','zam_riru':'Зам РИРУ','nachalnik_urru':'Начальник УРРУ','engineer':'Инженер'};
+    var ROLE_LABELS = {'admin_ia':'Админ ИА','zam_riru':'Зам РИРУ','nachalnik_urru':'Начальник УРРУ','engineer':'Начальник АСКУЭ','engineer_askue':'Инженер АСКУЭ'};
     var userRole = null, userEnterprise = null, userRES = null;
     var SUPERADMIN_EMAIL = 'adam-ashinoff@mail.ru';
     var isSuperAdmin = false;
@@ -5218,6 +5229,7 @@
         if (currentPage === 'admin') { renderAdminPanel(); return; }
         if (currentPage === 'dashboard') { renderDashboard(); return; }
         if (currentPage === 'opros') { renderOpros(); return; }
+        if (currentPage === 'board') { renderBoard(); return; }
         if (currentPage === 'mpi' || currentPage === 'poteri') { c.innerHTML = '<div style="text-align:center;padding:60px;color:var(--text-muted)"><h2 style="font-size:20px;margin-bottom:8px">Раздел в разработке</h2><p>Скоро здесь появится отчёт</p></div>'; return; }
         if (currentPage === 'overview') c.innerHTML = renderOverview();
         else if (currentPage === 'strategic') c.innerHTML = renderStrategic();
@@ -5247,6 +5259,7 @@
         if (currentPage === 'admin') { renderAdminPanel(); return; }
         if (currentPage === 'dashboard') { renderDashboard(); return; }
         if (currentPage === 'opros') { renderOpros(); return; }
+        if (currentPage === 'board') { renderBoard(); return; }
         if (currentPage === 'mpi' || currentPage === 'poteri') { c.innerHTML = '<div style="text-align:center;padding:60px;color:var(--text-muted)"><h2 style="font-size:20px;margin-bottom:8px">Раздел в разработке</h2><p>Скоро здесь появится отчёт</p></div>'; return; }
         if (currentPage === 'overview') c.innerHTML = renderOverview();
         else if (currentPage === 'strategic') c.innerHTML = renderStrategic();
@@ -7858,6 +7871,20 @@
         if (dn) dn.style.display = (userRole==='admin_ia'||userRole==='zam_riru') ? '' : 'none';
         var an = document.getElementById('navAdmin');
         if (an) an.style.display = isSuperAdmin ? '' : 'none';
+        // Hide planning for АСКУЭ roles
+        var isAskue = (userRole === 'engineer' || userRole === 'engineer_askue');
+        var planLinks = document.querySelectorAll('[data-page="strategic"],[data-page="tactical"],[data-page="operational"],[data-page="overview"]');
+        planLinks.forEach(function(el) {
+            var li = el.closest('li');
+            if (li) li.style.display = isAskue ? 'none' : '';
+        });
+        // Show АСКУЭ section for АСКУЭ roles and admin
+        var askueSec = document.getElementById('navAskueSection');
+        if (askueSec) askueSec.style.display = (isAskue || userRole==='admin_ia' || isSuperAdmin) ? '' : 'none';
+        // If АСКУЭ role and on a hidden page, redirect to board
+        if (isAskue && (currentPage==='overview'||currentPage==='strategic'||currentPage==='tactical'||currentPage==='operational')) {
+            go('board');
+        }
     }
     
     window.manualResetProgress = function(type) {
@@ -8313,7 +8340,8 @@
         procedures: 'Процедуры',
         opros: 'Опрос ПУ',
         mpi: 'МПИ',
-        poteri: 'Потери'
+        poteri: 'Потери',
+        board: 'Рабочая доска'
     };
     
     function getMobileStats(type) {
@@ -9202,6 +9230,20 @@
         });
     }
 
+    // ========== РАБОЧАЯ ДОСКА АСКУЭ ==========
+    function renderBoard() {
+        var c = document.getElementById('content');
+        if (!c) return;
+        var svgBoard = '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/></svg>';
+        var h = '<div class="page-header"><div class="page-header-top"><div class="page-header-icon" style="background:var(--accent-purple)">' + svgBoard + '</div><div><div class="page-header-title"><h1>Рабочая доска</h1><span class="page-header-badge" style="background:var(--accent-purple)">АСКУЭ</span></div><p style="color:var(--text-secondary);font-size:14px;margin-top:4px">Задачи и рабочие процессы АСКУЭ</p></div></div></div>';
+        h += '<div class="overview-card" style="cursor:default;margin-top:24px;padding:40px;text-align:center">';
+        h += '<svg viewBox="0 0 24 24" style="width:48px;height:48px;stroke:var(--accent-purple);fill:none;stroke-width:1.5;margin-bottom:16px;opacity:0.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/></svg>';
+        h += '<h3 style="font-size:18px;font-weight:600;margin-bottom:8px;color:var(--text-primary)">Доска готова к наполнению</h3>';
+        h += '<p style="color:var(--text-muted);font-size:14px">Здесь будут задачи и рабочие процессы для сотрудников АСКУЭ</p>';
+        h += '</div>';
+        c.innerHTML = h;
+    }
+
     // ========== ADMIN PANEL (SuperAdmin only) ==========
     function renderAdminPanel() {
         var c = document.getElementById('content');
@@ -9216,7 +9258,7 @@
         h += '<div><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">Email</label><input type="email" id="adminNewEmail" placeholder="user@rosseti-kuban.ru" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:var(--radius-sm);font-size:14px"></div>';
         h += '<div><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">\u0412\u0440\u0435\u043c\u0435\u043d\u043d\u044b\u0439 \u043f\u0430\u0440\u043e\u043b\u044c</label><div style="position:relative"><input type="password" id="adminNewPass" placeholder="\u043c\u0438\u043d. 6 \u0441\u0438\u043c\u0432\u043e\u043b\u043e\u0432" style="width:100%;padding:10px 40px 10px 12px;border:1px solid var(--border-color);border-radius:var(--radius-sm);font-size:14px"><button type="button" onclick="togglePass(\'adminNewPass\', this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:4px;display:flex;color:#94a3b8;outline:none" title="\u041f\u043e\u043a\u0430\u0437\u0430\u0442\u044c \u043f\u0430\u0440\u043e\u043b\u044c"><svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>';
         h += '<div><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">\u0424\u0418\u041e</label><input type="text" id="adminNewName" placeholder="\u0418\u0432\u0430\u043d\u043e\u0432 \u0418\u0432\u0430\u043d \u0418\u0432\u0430\u043d\u043e\u0432\u0438\u0447" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:var(--radius-sm);font-size:14px"></div>';
-        h += '<div><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">\u0420\u043e\u043b\u044c</label><select id="adminNewRole" onchange="onAdminRoleChange()" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:var(--radius-sm);font-size:14px;background:#fff"><option value="nachalnik_urru">\u041d\u0430\u0447\u0430\u043b\u044c\u043d\u0438\u043a \u0423\u0420\u0420\u0423</option><option value="zam_riru">\u0417\u0430\u043c \u0420\u0418\u0420\u0423</option><option value="admin_ia">\u0410\u0434\u043c\u0438\u043d \u0418\u0410</option><option value="engineer">\u0418\u043d\u0436\u0435\u043d\u0435\u0440</option></select></div>';
+        h += '<div><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">\u0420\u043e\u043b\u044c</label><select id="adminNewRole" onchange="onAdminRoleChange()" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:var(--radius-sm);font-size:14px;background:#fff"><option value="nachalnik_urru">\u041d\u0430\u0447\u0430\u043b\u044c\u043d\u0438\u043a \u0423\u0420\u0420\u0423</option><option value="zam_riru">\u0417\u0430\u043c \u0420\u0418\u0420\u0423</option><option value="admin_ia">\u0410\u0434\u043c\u0438\u043d \u0418\u0410</option><option value="engineer">\u041d\u0430\u0447\u0430\u043b\u044c\u043d\u0438\u043a \u0410\u0421\u041a\u0423\u042d</option><option value="engineer_askue">\u0418\u043d\u0436\u0435\u043d\u0435\u0440 \u0410\u0421\u041a\u0423\u042d</option></select></div>';
         h += '<div id="adminEntWrap"><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">\u041f\u0440\u0435\u0434\u043f\u0440\u0438\u044f\u0442\u0438\u0435</label><select id="adminNewEnt" onchange="onAdminEntChange()" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:var(--radius-sm);font-size:14px;background:#fff"><option value="">\u2014 \u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u2014</option></select></div>';
         h += '<div id="adminRESWrap"><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">\u0420\u042d\u0421</label><select id="adminNewRES" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:var(--radius-sm);font-size:14px;background:#fff"><option value="">\u2014 \u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u2014</option></select></div>';
         h += '</div>';
@@ -9244,7 +9286,7 @@
     
     function onAdminEntChange() {
         var r = document.getElementById('adminNewRole'), e = document.getElementById('adminNewEnt');
-        if (r && r.value === 'nachalnik_urru' && e && e.value) {
+        if (r && (r.value === 'nachalnik_urru' || r.value === 'engineer_askue') && e && e.value) {
             document.getElementById('adminRESWrap').style.display = '';
             populateRESSelect('adminNewRES', e.value);
         }
@@ -9262,8 +9304,8 @@
         if (!email) { showAdminResult('Введите email', false); return; }
         if (!pass || pass.length < 6) { showAdminResult('Пароль минимум 6 символов', false); return; }
         if (!role) { showAdminResult('Выберите роль', false); return; }
-        if ((role==='zam_riru'||role==='nachalnik_urru'||role==='engineer') && !ent) { showAdminResult('Выберите предприятие', false); return; }
-        if (role==='nachalnik_urru' && !res) { showAdminResult('Выберите РЭС', false); return; }
+        if ((role==='zam_riru'||role==='nachalnik_urru'||role==='engineer'||role==='engineer_askue') && !ent) { showAdminResult('Выберите предприятие', false); return; }
+        if ((role==='nachalnik_urru'||role==='engineer_askue') && !res) { showAdminResult('Выберите РЭС', false); return; }
         
         showAdminResult('Создаю учётку...', true);
         
@@ -9378,7 +9420,7 @@
             
             users.forEach(function(u) {
                 var isSA = u.email && u.email.toLowerCase() === SUPERADMIN_EMAIL.toLowerCase();
-                var roleColor = u.role==='admin_ia' ? '#ef4444' : u.role==='zam_riru' ? '#f59e0b' : u.role==='engineer' ? '#8b5cf6' : '#3b82f6';
+                var roleColor = u.role==='admin_ia' ? '#ef4444' : u.role==='zam_riru' ? '#f59e0b' : u.role==='engineer' ? '#8b5cf6' : u.role==='engineer_askue' ? '#a78bfa' : '#3b82f6';
                 t += '<tr style="border-bottom:1px solid var(--border-color)">';
                 t += '<td style="padding:8px">' + (u.email||'—') + (isSA ? ' <span style="background:#ef4444;color:#fff;font-size:10px;padding:1px 5px;border-radius:4px">SA</span>' : '') + '</td>';
                 t += '<td style="padding:8px">' + (u.name||'—') + '</td>';
@@ -9432,7 +9474,7 @@
         // Пароль
         card += '<div style="margin-bottom:12px"><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">Новый пароль <span style="font-weight:400;color:var(--text-muted)">(пустое = не менять)</span></label><div style="position:relative"><input type="password" id="editUserPass" placeholder="мин. 6 символов" style="width:100%;padding:10px 40px 10px 12px;border:1px solid var(--border-color);border-radius:8px;font-size:14px;box-sizing:border-box"><button type="button" onclick="togglePass(\'editUserPass\', this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:4px;display:flex;color:#94a3b8;outline:none" title="Показать пароль"><svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>';
         // Роль
-        card += '<div style="margin-bottom:12px"><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">Роль</label><select id="editUserRole" onchange="onEditRoleChange()" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:8px;font-size:14px;background:#fff"><option value="nachalnik_urru">Начальник УРРУ</option><option value="zam_riru">Зам РИРУ</option><option value="admin_ia">Админ ИА</option><option value="engineer">Инженер</option></select></div>';
+        card += '<div style="margin-bottom:12px"><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">Роль</label><select id="editUserRole" onchange="onEditRoleChange()" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:8px;font-size:14px;background:#fff"><option value="nachalnik_urru">Начальник УРРУ</option><option value="zam_riru">Зам РИРУ</option><option value="admin_ia">Админ ИА</option><option value="engineer">Начальник АСКУЭ</option><option value="engineer_askue">Инженер АСКУЭ</option></select></div>';
         // Предприятие
         card += '<div id="editEntWrap" style="margin-bottom:12px"><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">Предприятие</label><select id="editUserEnt" onchange="onEditEntChange()" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:8px;font-size:14px;background:#fff"><option value="">— Выберите —</option></select></div>';
         // РЭС
@@ -9481,7 +9523,7 @@
 
     function onEditEntChange() {
         var r = document.getElementById('editUserRole'), e = document.getElementById('editUserEnt');
-        if (r && r.value === 'nachalnik_urru' && e && e.value) {
+        if (r && (r.value === 'nachalnik_urru' || r.value === 'engineer_askue') && e && e.value) {
             document.getElementById('editRESWrap').style.display = '';
             populateRESSelect('editUserRES', e.value);
         }
@@ -9509,8 +9551,8 @@
         }
         
         // Validation
-        if ((newRole==='zam_riru'||newRole==='nachalnik_urru'||newRole==='engineer') && !newEnt) { showEditResult('Выберите предприятие', false); return; }
-        if (newRole==='nachalnik_urru' && !newRES) { showEditResult('Выберите РЭС', false); return; }
+        if ((newRole==='zam_riru'||newRole==='nachalnik_urru'||newRole==='engineer'||newRole==='engineer_askue') && !newEnt) { showEditResult('Выберите предприятие', false); return; }
+        if ((newRole==='nachalnik_urru'||newRole==='engineer_askue') && !newRES) { showEditResult('Выберите РЭС', false); return; }
         
         // Update Firestore data
         var updates = {
