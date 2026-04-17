@@ -8728,12 +8728,13 @@
     // ========== REPORTS: ОПРОС ПУ ==========
     var _oprosData = null;
     var _oprosViewMode = 'pct'; // 'pct' or 'count'
+    var _oprosManageDates = false;
 
     function renderOpros() {
         var c = document.getElementById('content');
         if (!c) return;
         var canUpload = (userRole === 'engineer' || userRole === 'admin_ia' || isSuperAdmin);
-        var svgChart = '<svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>';
+        var svgChart = '<svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:none;stroke-width:2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>';
         var h = '<div class="page-header"><div class="page-header-top"><div class="page-header-icon" style="background:var(--accent-purple)">' + svgChart + '</div><div><div class="page-header-title"><h1>Опрос ПУ</h1><span class="page-header-badge" style="background:var(--accent-purple)">Пирамида</span></div><p style="color:var(--text-secondary);font-size:14px;margin-top:4px">Процент и количество опроса приборов учёта по РЭС</p></div></div></div>';
         if (canUpload) {
             h += '<div class="overview-card" style="cursor:default;margin-top:20px;padding:20px">';
@@ -8750,6 +8751,9 @@
         h += '<button id="btnViewCnt" onclick="switchOprosView(\'count\')" style="padding:8px 16px;font-size:13px;font-weight:600;border:none;cursor:pointer;transition:var(--transition);background:var(--bg-card);color:var(--text-secondary)">Количество</button>';
         h += '</div>';
         h += '<button onclick="exportOprosExcel()" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;font-size:13px;font-weight:600;border:1px solid var(--border-color);border-radius:var(--radius-sm);cursor:pointer;background:var(--bg-card);color:var(--text-primary);transition:var(--transition)" onmouseover="this.style.background=\'var(--bg-hover)\'" onmouseout="this.style.background=\'var(--bg-card)\'"><svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Выгрузить в Excel</button>';
+        if (isSuperAdmin || userRole === 'admin_ia') {
+            h += '<button id="btnManageDates" onclick="toggleManageDates()" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;font-size:13px;font-weight:600;border:1px solid var(--border-color);border-radius:var(--radius-sm);cursor:pointer;background:var(--bg-card);color:var(--text-secondary);transition:var(--transition)" onmouseover="this.style.borderColor=\'#ef4444\'" onmouseout="this.style.borderColor=\'var(--border-color)\'"><svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>Управление датами</button>';
+        }
         h += '</div>';
         h += '<div id="oprosReportBody" style="margin-top:16px"><div style="text-align:center;padding:40px;color:var(--text-muted)">Загрузка данных...</div></div>';
         c.innerHTML = h;
@@ -8996,8 +9000,14 @@
                 var uploadInfo = '<span style="font-size:12px;color:var(--text-muted)">Загрузил: ' + (d.uploadedBy||'—') + '</span>';
                 html += '<div class="overview-card" style="cursor:default;padding:0;margin-bottom:20px;overflow:hidden">';
                 html += '<div style="padding:16px 20px;border-bottom:1px solid var(--border-color);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px"><h3 style="font-size:15px;font-weight:700">' + (d.enterprise||'—') + '</h3>' + uploadInfo + '</div>';
-                if (general) html += renderOprosTable('Общий опрос', general, dates);
-                if (spodes) html += renderOprosTable('СПОДЭС', spodes, dates);
+                if (general) html += renderOprosTable('Общий опрос', general, dates, d.enterprise);
+                if (spodes) html += renderOprosTable('СПОДЭС', spodes, dates, d.enterprise);
+                if (_oprosManageDates) {
+                    html += '<div style="padding:12px 20px;border-top:1px solid var(--border-color);background:#fef2f2;display:flex;align-items:center;gap:12px">';
+                    html += '<button onclick="deleteSelectedDates(\'' + (d.enterprise||'').replace(/'/g,"\\'") + '\')" style="padding:8px 18px;font-size:13px;font-weight:600;background:#ef4444;color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;display:inline-flex;align-items:center;gap:6px"><svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>Удалить выбранные даты</button>';
+                    html += '<span style="font-size:12px;color:#991b1b">Отметьте галочками даты для удаления</span>';
+                    html += '</div>';
+                }
                 html += '</div>';
             });
             body.innerHTML = html;
@@ -9011,10 +9021,21 @@
         });
     }
 
-    function renderOprosTable(title, block, dates) {
+    function renderOprosTable(title, block, dates, enterprise) {
         var mode = _oprosViewMode || 'pct';
+        var manage = _oprosManageDates;
+        var safeEnt = (enterprise||'').replace(/"/g,'&quot;');
         var h = '<div style="padding:16px 20px"><h4 style="font-size:14px;font-weight:600;color:var(--accent-purple);margin-bottom:12px">' + title + ' <span style="font-weight:400;font-size:12px;color:var(--text-muted)">(' + (mode==='pct' ? '%' : 'без опроса') + ')</span></h4>';
         h += '<div class="opros-scroll-wrap" style="overflow-x:auto;max-width:100%"><table style="width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap">';
+        // Checkbox row for date management
+        if (manage) {
+            h += '<tr style="background:#fef2f2">';
+            h += '<td colspan="4" style="padding:4px 10px;font-size:11px;color:#991b1b;position:sticky;left:0;background:#fef2f2;z-index:1">Выбор дат</td>';
+            dates.forEach(function(d) {
+                h += '<td style="padding:4px;text-align:center"><input type="checkbox" class="opros-date-cb" data-ent="' + safeEnt + '" value="' + d + '" style="cursor:pointer;width:15px;height:15px;accent-color:#ef4444"></td>';
+            });
+            h += '</tr>';
+        }
         h += '<thead><tr style="border-bottom:2px solid var(--border-color);background:var(--bg-hover)">';
         h += '<th style="padding:8px 10px;text-align:left;position:sticky;left:0;background:var(--bg-hover);z-index:1;min-width:160px">РЭС</th>';
         h += '<th style="padding:8px 6px;text-align:right">Всего</th>';
@@ -9090,12 +9111,10 @@
                     if (r.weekly) r.weekly.forEach(function(w) { vals.push(w.pct); });
                     var row = ws.addRow(vals);
                     if (r.res === 'ИТОГО') row.font = { bold: true };
-                    // Format % columns
                     for (var ci = 5; ci <= vals.length; ci++) {
                         row.getCell(ci).numFmt = '0.00%';
                     }
                 });
-                // Count sheet
                 var ws2 = wb.addWorksheet(name + ' (кол-во)');
                 var headers2 = ['РЭС', 'Всего', 'Опрос', 'Без опроса'];
                 dates.forEach(function(d) { var p = d.split('-'); headers2.push(p[2]+'.'+p[1]); });
@@ -9107,7 +9126,6 @@
                     var row = ws2.addRow(vals);
                     if (r.res === 'ИТОГО') row.font = { bold: true };
                 });
-                // Auto width
                 [ws, ws2].forEach(function(s) {
                     s.columns.forEach(function(col) { col.width = col.number === 1 ? 28 : 14; });
                 });
@@ -9121,6 +9139,55 @@
             var a = document.createElement('a'); a.href = url; a.download = 'Опрос_ПУ_' + new Date().toISOString().split('T')[0] + '.xlsx';
             a.click(); URL.revokeObjectURL(url);
             toast('Файл выгружен', true);
+        });
+    }
+
+    function toggleManageDates() {
+        _oprosManageDates = !_oprosManageDates;
+        var btn = document.getElementById('btnManageDates');
+        if (btn) {
+            btn.style.background = _oprosManageDates ? '#fef2f2' : 'var(--bg-card)';
+            btn.style.color = _oprosManageDates ? '#ef4444' : 'var(--text-secondary)';
+            btn.style.borderColor = _oprosManageDates ? '#ef4444' : 'var(--border-color)';
+        }
+        loadOprosFromFirestore();
+    }
+
+    function deleteSelectedDates(enterprise) {
+        var checkboxes = document.querySelectorAll('.opros-date-cb[data-ent="' + enterprise + '"]:checked');
+        if (!checkboxes.length) { toast('Выберите даты для удаления', false); return; }
+        var datesToDelete = [];
+        checkboxes.forEach(function(cb) { datesToDelete.push(cb.value); });
+        if (!confirm('Удалить ' + datesToDelete.length + ' дат из отчёта «' + enterprise + '»?\n\n' + datesToDelete.join(', ') + '\n\nЭто действие нельзя отменить.')) return;
+
+        db.collection('reports_opros').doc(enterprise).get().then(function(doc) {
+            if (!doc.exists) return;
+            var d = doc.data();
+            var dates = (d.dates || []).filter(function(dt) { return datesToDelete.indexOf(dt) === -1; });
+            var general = d.general ? JSON.parse(d.general) : null;
+            var spodes = d.spodes ? JSON.parse(d.spodes) : null;
+
+            function filterBlock(block) {
+                if (!block) return null;
+                block.rows.forEach(function(r) {
+                    r.weekly = r.weekly.filter(function(w) { return datesToDelete.indexOf(w.date) === -1; });
+                });
+                block.totals.weekly = block.totals.weekly.filter(function(w) { return datesToDelete.indexOf(w.date) === -1; });
+                return block;
+            }
+            general = filterBlock(general);
+            spodes = filterBlock(spodes);
+
+            return db.collection('reports_opros').doc(enterprise).update({
+                dates: dates,
+                general: general ? JSON.stringify(general) : null,
+                spodes: spodes ? JSON.stringify(spodes) : null
+            });
+        }).then(function() {
+            toast('Удалено ' + datesToDelete.length + ' дат', true);
+            loadOprosFromFirestore();
+        }).catch(function(err) {
+            toast('Ошибка: ' + err.message, false);
         });
     }
 
