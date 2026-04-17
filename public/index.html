@@ -8727,6 +8727,7 @@
 
     // ========== REPORTS: ОПРОС ПУ ==========
     var _oprosData = null;
+    var _oprosViewMode = 'pct'; // 'pct' or 'count'
 
     function renderOpros() {
         var c = document.getElementById('content');
@@ -8742,8 +8743,24 @@
             h += '<span id="oprosUploadStatus" style="font-size:13px;color:var(--text-muted)"></span>';
             h += '</div></div>';
         }
-        h += '<div id="oprosReportBody" style="margin-top:20px"><div style="text-align:center;padding:40px;color:var(--text-muted)">Загрузка данных...</div></div>';
+        // Controls: toggle % / count + export
+        h += '<div style="margin-top:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">';
+        h += '<div style="display:inline-flex;border:1px solid var(--border-color);border-radius:var(--radius-sm);overflow:hidden">';
+        h += '<button id="btnViewPct" onclick="switchOprosView(\'pct\')" style="padding:8px 16px;font-size:13px;font-weight:600;border:none;cursor:pointer;transition:var(--transition);background:var(--accent-blue);color:#fff">Проценты %</button>';
+        h += '<button id="btnViewCnt" onclick="switchOprosView(\'count\')" style="padding:8px 16px;font-size:13px;font-weight:600;border:none;cursor:pointer;transition:var(--transition);background:var(--bg-card);color:var(--text-secondary)">Количество</button>';
+        h += '</div>';
+        h += '<button onclick="exportOprosExcel()" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;font-size:13px;font-weight:600;border:1px solid var(--border-color);border-radius:var(--radius-sm);cursor:pointer;background:var(--bg-card);color:var(--text-primary);transition:var(--transition)" onmouseover="this.style.background=\'var(--bg-hover)\'" onmouseout="this.style.background=\'var(--bg-card)\'"><svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Выгрузить в Excel</button>';
+        h += '</div>';
+        h += '<div id="oprosReportBody" style="margin-top:16px"><div style="text-align:center;padding:40px;color:var(--text-muted)">Загрузка данных...</div></div>';
         c.innerHTML = h;
+        loadOprosFromFirestore();
+    }
+
+    function switchOprosView(mode) {
+        _oprosViewMode = mode;
+        var bp = document.getElementById('btnViewPct'), bc = document.getElementById('btnViewCnt');
+        if (bp) { bp.style.background = mode==='pct' ? 'var(--accent-blue)' : 'var(--bg-card)'; bp.style.color = mode==='pct' ? '#fff' : 'var(--text-secondary)'; }
+        if (bc) { bc.style.background = mode==='count' ? 'var(--accent-blue)' : 'var(--bg-card)'; bc.style.color = mode==='count' ? '#fff' : 'var(--text-secondary)'; }
         loadOprosFromFirestore();
     }
 
@@ -8760,7 +8777,7 @@
                 wb.xlsx.load(e.target.result).then(function() {
                     var parsed = parseOprosWorkbook(wb);
                     if (!parsed) { statusEl.textContent = 'Ошибка: не удалось распознать формат файла'; statusEl.style.color = '#ef4444'; return; }
-                    saveOprosToFirestore(parsed, statusEl);
+                    mergeAndSaveOpros(parsed, statusEl);
                 }).catch(function(err) { statusEl.textContent = 'Ошибка чтения: ' + err.message; statusEl.style.color = '#ef4444'; });
             } catch(err) { statusEl.textContent = 'Ошибка: ' + err.message; statusEl.style.color = '#ef4444'; }
         };
@@ -8772,7 +8789,6 @@
         var sheetCnt = wb.getWorksheet('кол-во') || wb.getWorksheet(2);
         if (!sheetPct || !sheetCnt) return null;
 
-        // Parse dates from % sheet row 1
         var datesRow = sheetPct.getRow(1);
         var dates2026 = [];
         var dateColMap = {};
@@ -8785,7 +8801,6 @@
             }
         }
 
-        // Parse dates from кол-во sheet row 1
         var cntDatesRow = sheetCnt.getRow(1);
         var cntDateColMap = {};
         for (var col = 5; col <= sheetCnt.columnCount; col++) {
@@ -8808,8 +8823,6 @@
                 var resName = parts.length > 1 ? parts[1].trim() : area;
                 var total = Number(row.getCell(2).value) || 0;
                 var polled = Number(row.getCell(3).value) || 0;
-                var unpolled = Number(row.getCell(4).value) || 0;
-                // Get corresponding count row
                 var cntRow = sheetCntRef.getRow(cntStartRow + (r - startRow));
                 var weekly = [];
                 dates2026.forEach(function(d) {
@@ -8818,16 +8831,15 @@
                     if (cntDateColMap[d.date]) cnt = Number(cntRow.getCell(cntDateColMap[d.date]).value) || 0;
                     weekly.push({ date: d.date, pct: pct, count: cnt });
                 });
-                rows.push({ res: resName, total: total, polled: polled, unpolled: unpolled, weekly: weekly });
+                rows.push({ res: resName, total: total, polled: polled, weekly: weekly });
             }
-            // Calculate totals
-            var totals = { res: 'ИТОГО', total: 0, polled: 0, unpolled: 0, weekly: [] };
+            var totals = { res: 'ИТОГО', total: 0, polled: 0, weekly: [] };
             dates2026.forEach(function(d, i) {
                 var sumCnt = 0;
-                rows.forEach(function(r) { totals.total = totals.total || 0; sumCnt += (r.weekly[i] ? r.weekly[i].count : 0); });
+                rows.forEach(function(r) { sumCnt += (r.weekly[i] ? r.weekly[i].count : 0); });
                 totals.weekly.push({ date: d.date, pct: 0, count: sumCnt });
             });
-            rows.forEach(function(r) { totals.total += r.total; totals.polled += r.polled; totals.unpolled += r.unpolled; });
+            rows.forEach(function(r) { totals.total += r.total; totals.polled += r.polled; });
             totals.weekly.forEach(function(w, i) {
                 var totalAll = 0, polledAll = 0;
                 rows.forEach(function(r) { totalAll += r.total; polledAll += r.total - (r.weekly[i] ? r.weekly[i].count : 0); });
@@ -8836,7 +8848,6 @@
             return { enterprise: enterprise, rows: rows, totals: totals };
         }
 
-        // Find block boundaries by scanning for header rows
         var block1Start = 3, block1End = 3, block2Start = 0, block2End = 0;
         for (var r = 3; r <= sheetPct.rowCount; r++) {
             var val = sheetPct.getRow(r).getCell(1).value;
@@ -8869,23 +8880,92 @@
         };
     }
 
-    function saveOprosToFirestore(data, statusEl) {
-        if (!db) { statusEl.textContent = 'Нет подключения к базе данных'; statusEl.style.color = '#ef4444'; return; }
-        var entName = data.enterprise || userEnterprise || 'unknown';
-        var docData = {
-            enterprise: entName,
-            dates: data.dates,
-            general: JSON.stringify(data.general),
-            spodes: data.spodes ? JSON.stringify(data.spodes) : null,
-            uploadedBy: data.uploadedBy,
-            uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
-        };
-        db.collection('reports_opros').doc(entName).set(docData, { merge: true }).then(function() {
-            statusEl.textContent = '✅ Данные загружены: ' + entName + ' (' + data.dates.length + ' дат, ' + (data.general.rows.length) + ' РЭС)';
-            statusEl.style.color = '#16a34a';
-            loadOprosFromFirestore();
+    // Merge new dates with existing data, only add new ones
+    function mergeAndSaveOpros(newData, statusEl) {
+        if (!db) { statusEl.textContent = 'Нет подключения'; statusEl.style.color = '#ef4444'; return; }
+        var entName = newData.enterprise || userEnterprise || 'unknown';
+        statusEl.textContent = 'Проверяю существующие данные...';
+
+        db.collection('reports_opros').doc(entName).get().then(function(doc) {
+            var merged = newData;
+            var newDatesCount = newData.dates.length;
+
+            if (doc.exists) {
+                var existing = doc.data();
+                var existingDates = existing.dates || [];
+                var existingGeneral = existing.general ? JSON.parse(existing.general) : null;
+                var existingSpodes = existing.spodes ? JSON.parse(existing.spodes) : null;
+
+                // Find truly new dates
+                var newOnlyDates = newData.dates.filter(function(d) { return existingDates.indexOf(d) === -1; });
+                newDatesCount = newOnlyDates.length;
+
+                if (newOnlyDates.length > 0) {
+                    // Merge dates
+                    var allDates = existingDates.concat(newOnlyDates);
+                    allDates.sort();
+                    merged.dates = allDates;
+
+                    // Merge weekly data for each block
+                    function mergeBlock(existBlock, newBlock) {
+                        if (!existBlock || !newBlock) return newBlock || existBlock;
+                        newBlock.rows.forEach(function(nr) {
+                            var er = null;
+                            existBlock.rows.forEach(function(r) { if (r.res === nr.res) er = r; });
+                            if (er) {
+                                newOnlyDates.forEach(function(nd) {
+                                    var w = null;
+                                    nr.weekly.forEach(function(wk) { if (wk.date === nd) w = wk; });
+                                    if (w) er.weekly.push(w);
+                                });
+                                er.weekly.sort(function(a,b) { return a.date.localeCompare(b.date); });
+                                er.total = nr.total;
+                                er.polled = nr.polled;
+                            }
+                        });
+                        // Recalc totals
+                        existBlock.totals.total = 0; existBlock.totals.polled = 0;
+                        existBlock.rows.forEach(function(r) { existBlock.totals.total += r.total; existBlock.totals.polled += r.polled; });
+                        existBlock.totals.weekly = [];
+                        allDates.forEach(function(d, i) {
+                            var sumCnt = 0, totalAll = 0, polledAll = 0;
+                            existBlock.rows.forEach(function(r) {
+                                var w = null; r.weekly.forEach(function(wk) { if (wk.date === d) w = wk; });
+                                if (w) { sumCnt += w.count; totalAll += r.total; polledAll += r.total - w.count; }
+                            });
+                            existBlock.totals.weekly.push({ date: d, pct: totalAll > 0 ? polledAll/totalAll : 0, count: sumCnt });
+                        });
+                        return existBlock;
+                    }
+                    merged.general = mergeBlock(existingGeneral, newData.general);
+                    merged.spodes = mergeBlock(existingSpodes, newData.spodes);
+                } else {
+                    // No new dates — just update totals
+                    merged.dates = existingDates;
+                    merged.general = existingGeneral || newData.general;
+                    merged.spodes = existingSpodes || newData.spodes;
+                }
+            }
+
+            var docData = {
+                enterprise: entName,
+                dates: merged.dates,
+                general: JSON.stringify(merged.general),
+                spodes: merged.spodes ? JSON.stringify(merged.spodes) : null,
+                uploadedBy: newData.uploadedBy,
+                uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            return db.collection('reports_opros').doc(entName).set(docData).then(function() {
+                if (newDatesCount > 0) {
+                    statusEl.textContent = '✅ Добавлено ' + newDatesCount + ' новых дат (' + entName + ', всего ' + merged.dates.length + ' дат)';
+                } else {
+                    statusEl.textContent = '✅ Данные актуальны, новых дат не найдено (' + entName + ')';
+                }
+                statusEl.style.color = '#16a34a';
+                loadOprosFromFirestore();
+            });
         }).catch(function(err) {
-            statusEl.textContent = '❌ Ошибка сохранения: ' + err.message;
+            statusEl.textContent = '❌ Ошибка: ' + err.message;
             statusEl.style.color = '#ef4444';
         });
     }
@@ -8894,7 +8974,6 @@
         var body = document.getElementById('oprosReportBody');
         if (!body || !db) { if(body) body.innerHTML = '<div style="color:var(--text-muted);text-align:center;padding:40px">Нет подключения</div>'; return; }
 
-        // Determine which enterprises to load
         var query;
         if (userRole === 'admin_ia' || isSuperAdmin) {
             query = db.collection('reports_opros').get();
@@ -8907,11 +8986,13 @@
         query.then(function(snap) {
             if (snap.empty) { body.innerHTML = '<div style="color:var(--text-muted);text-align:center;padding:40px">Нет загруженных отчётов по опросу</div>'; return; }
             var html = '';
+            _oprosData = [];
             snap.forEach(function(doc) {
                 var d = doc.data();
                 var general = d.general ? JSON.parse(d.general) : null;
                 var spodes = d.spodes ? JSON.parse(d.spodes) : null;
                 var dates = d.dates || [];
+                _oprosData.push({ enterprise: d.enterprise, dates: dates, general: general, spodes: spodes });
                 var uploadInfo = '<span style="font-size:12px;color:var(--text-muted)">Загрузил: ' + (d.uploadedBy||'—') + '</span>';
                 html += '<div class="overview-card" style="cursor:default;padding:0;margin-bottom:20px;overflow:hidden">';
                 html += '<div style="padding:16px 20px;border-bottom:1px solid var(--border-color);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px"><h3 style="font-size:15px;font-weight:700">' + (d.enterprise||'—') + '</h3>' + uploadInfo + '</div>';
@@ -8920,15 +9001,20 @@
                 html += '</div>';
             });
             body.innerHTML = html;
+            // Scroll tables to the right (latest dates)
+            setTimeout(function() {
+                var scrolls = document.querySelectorAll('.opros-scroll-wrap');
+                scrolls.forEach(function(el) { el.scrollLeft = el.scrollWidth; });
+            }, 100);
         }).catch(function(err) {
             body.innerHTML = '<div style="color:#ef4444;text-align:center;padding:40px">Ошибка загрузки: ' + err.message + '</div>';
         });
     }
 
     function renderOprosTable(title, block, dates) {
-        var h = '<div style="padding:16px 20px"><h4 style="font-size:14px;font-weight:600;color:var(--accent-purple);margin-bottom:12px">' + title + '</h4>';
-        h += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap">';
-        // Header
+        var mode = _oprosViewMode || 'pct';
+        var h = '<div style="padding:16px 20px"><h4 style="font-size:14px;font-weight:600;color:var(--accent-purple);margin-bottom:12px">' + title + ' <span style="font-weight:400;font-size:12px;color:var(--text-muted)">(' + (mode==='pct' ? '%' : 'без опроса') + ')</span></h4>';
+        h += '<div class="opros-scroll-wrap" style="overflow-x:auto;max-width:100%"><table style="width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap">';
         h += '<thead><tr style="border-bottom:2px solid var(--border-color);background:var(--bg-hover)">';
         h += '<th style="padding:8px 10px;text-align:left;position:sticky;left:0;background:var(--bg-hover);z-index:1;min-width:160px">РЭС</th>';
         h += '<th style="padding:8px 6px;text-align:right">Всего</th>';
@@ -8946,28 +9032,96 @@
             var fw = isTotal ? 'font-weight:700;' : '';
             var bg = isTotal ? 'background:#f8fafc;' : '';
             var border = isTotal ? 'border-top:2px solid var(--border-color);' : 'border-bottom:1px solid var(--border-color);';
+            var stickyBg = isTotal ? '#f8fafc' : 'var(--bg-card)';
+            var bezOpros = (row.total || 0) - (row.polled || 0);
             h += '<tr style="' + border + bg + '">';
-            h += '<td style="padding:6px 10px;' + fw + 'position:sticky;left:0;background:' + (isTotal ? '#f8fafc' : 'var(--bg-card)') + ';z-index:1">' + row.res + '</td>';
+            h += '<td style="padding:6px 10px;' + fw + 'position:sticky;left:0;background:' + stickyBg + ';z-index:1">' + row.res + '</td>';
             h += '<td style="padding:6px;text-align:right;' + fw + '">' + (row.total || 0).toLocaleString('ru') + '</td>';
             h += '<td style="padding:6px;text-align:right;' + fw + '">' + (row.polled || 0).toLocaleString('ru') + '</td>';
-            h += '<td style="padding:6px;text-align:right;' + fw + '">' + (row.unpolled || 0).toLocaleString('ru') + '</td>';
-            // Weekly data
+            h += '<td style="padding:6px;text-align:right;' + fw + '">' + bezOpros.toLocaleString('ru') + '</td>';
             if (row.weekly) {
                 row.weekly.forEach(function(w, i) {
-                    var pctVal = (w.pct * 100).toFixed(2);
-                    var prev = i > 0 && row.weekly[i-1] ? row.weekly[i-1].pct : null;
+                    var prev = i > 0 && row.weekly[i-1] ? row.weekly[i-1] : null;
                     var clr = '';
                     if (prev !== null && i > 0) {
-                        if (w.pct > prev + 0.001) clr = 'background:#dcfce7;color:#166534;';
-                        else if (w.pct < prev - 0.001) clr = 'background:#fee2e2;color:#991b1b;';
+                        var diff = w.pct - prev.pct;
+                        if (diff > 0.0005) clr = 'background:#dcfce7;color:#166534;';
+                        else if (diff < -0.0005) clr = 'background:#fee2e2;color:#991b1b;';
                     }
-                    h += '<td style="padding:4px;text-align:center;font-size:11px;' + fw + clr + '" title="Без опроса: ' + w.count + '">' + pctVal + '%</td>';
+                    var cellVal = '';
+                    if (mode === 'pct') {
+                        cellVal = (w.pct * 100).toFixed(2) + '%';
+                    } else {
+                        cellVal = (w.count || 0).toLocaleString('ru');
+                        // For count mode, reverse colors: less unpolled = green
+                        clr = '';
+                        if (prev !== null && i > 0) {
+                            var cdiff = w.count - prev.count;
+                            if (cdiff < -1) clr = 'background:#dcfce7;color:#166534;';
+                            else if (cdiff > 1) clr = 'background:#fee2e2;color:#991b1b;';
+                        }
+                    }
+                    var tip = mode === 'pct' ? ('Без опроса: ' + (w.count||0)) : ((w.pct*100).toFixed(2) + '%');
+                    h += '<td style="padding:4px;text-align:center;font-size:11px;' + fw + clr + '" title="' + tip + '">' + cellVal + '</td>';
                 });
             }
             h += '</tr>';
         });
         h += '</tbody></table></div></div>';
         return h;
+    }
+
+    function exportOprosExcel() {
+        if (!_oprosData || !_oprosData.length) { toast('Нет данных для выгрузки', false); return; }
+        var wb = new ExcelJS.Workbook();
+        _oprosData.forEach(function(data) {
+            function addSheet(name, block, dates) {
+                if (!block) return;
+                var ws = wb.addWorksheet(name);
+                var headers = ['РЭС', 'Всего', 'Опрос', 'Без опроса'];
+                dates.forEach(function(d) { var p = d.split('-'); headers.push(p[2]+'.'+p[1]); });
+                var headerRow = ws.addRow(headers);
+                headerRow.font = { bold: true, size: 11 };
+                headerRow.eachCell(function(c) { c.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFE8EAF0'} }; c.border = { bottom:{style:'thin'} }; });
+
+                var allRows = block.rows.concat([block.totals]);
+                allRows.forEach(function(r) {
+                    var vals = [r.res, r.total||0, r.polled||0, (r.total||0)-(r.polled||0)];
+                    if (r.weekly) r.weekly.forEach(function(w) { vals.push(w.pct); });
+                    var row = ws.addRow(vals);
+                    if (r.res === 'ИТОГО') row.font = { bold: true };
+                    // Format % columns
+                    for (var ci = 5; ci <= vals.length; ci++) {
+                        row.getCell(ci).numFmt = '0.00%';
+                    }
+                });
+                // Count sheet
+                var ws2 = wb.addWorksheet(name + ' (кол-во)');
+                var headers2 = ['РЭС', 'Всего', 'Опрос', 'Без опроса'];
+                dates.forEach(function(d) { var p = d.split('-'); headers2.push(p[2]+'.'+p[1]); });
+                var hRow2 = ws2.addRow(headers2);
+                hRow2.font = { bold: true }; hRow2.eachCell(function(c) { c.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFE8EAF0'} }; });
+                allRows.forEach(function(r) {
+                    var vals = [r.res, r.total||0, r.polled||0, (r.total||0)-(r.polled||0)];
+                    if (r.weekly) r.weekly.forEach(function(w) { vals.push(w.count||0); });
+                    var row = ws2.addRow(vals);
+                    if (r.res === 'ИТОГО') row.font = { bold: true };
+                });
+                // Auto width
+                [ws, ws2].forEach(function(s) {
+                    s.columns.forEach(function(col) { col.width = col.number === 1 ? 28 : 14; });
+                });
+            }
+            addSheet(data.enterprise + ' Общий', data.general, data.dates);
+            addSheet(data.enterprise + ' СПОДЭС', data.spodes, data.dates);
+        });
+        wb.xlsx.writeBuffer().then(function(buf) {
+            var blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a'); a.href = url; a.download = 'Опрос_ПУ_' + new Date().toISOString().split('T')[0] + '.xlsx';
+            a.click(); URL.revokeObjectURL(url);
+            toast('Файл выгружен', true);
+        });
     }
 
     // ========== ADMIN PANEL (SuperAdmin only) ==========
