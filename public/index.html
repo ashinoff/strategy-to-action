@@ -9231,17 +9231,260 @@
     }
 
     // ========== РАБОЧАЯ ДОСКА АСКУЭ ==========
+    var _boardTasks = [];
+
     function renderBoard() {
         var c = document.getElementById('content');
         if (!c) return;
+        var isChief = (userRole === 'engineer');
         var svgBoard = '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/></svg>';
-        var h = '<div class="page-header"><div class="page-header-top"><div class="page-header-icon" style="background:var(--accent-purple)">' + svgBoard + '</div><div><div class="page-header-title"><h1>Рабочая доска</h1><span class="page-header-badge" style="background:var(--accent-purple)">АСКУЭ</span></div><p style="color:var(--text-secondary);font-size:14px;margin-top:4px">Задачи и рабочие процессы АСКУЭ</p></div></div></div>';
-        h += '<div class="overview-card" style="cursor:default;margin-top:24px;padding:40px;text-align:center">';
-        h += '<svg viewBox="0 0 24 24" style="width:48px;height:48px;stroke:var(--accent-purple);fill:none;stroke-width:1.5;margin-bottom:16px;opacity:0.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/></svg>';
-        h += '<h3 style="font-size:18px;font-weight:600;margin-bottom:8px;color:var(--text-primary)">Доска готова к наполнению</h3>';
-        h += '<p style="color:var(--text-muted);font-size:14px">Здесь будут задачи и рабочие процессы для сотрудников АСКУЭ</p>';
-        h += '</div>';
+        var h = '<div class="page-header"><div class="page-header-top"><div class="page-header-icon" style="background:var(--accent-purple)">' + svgBoard + '</div><div><div class="page-header-title"><h1>Рабочая доска</h1><span class="page-header-badge" style="background:var(--accent-purple)">АСКУЭ</span></div><p style="color:var(--text-secondary);font-size:14px;margin-top:4px">Задачи и контроль выполнения по РЭС</p></div></div></div>';
+        if (isChief || isSuperAdmin) {
+            h += '<div style="margin-top:20px"><button onclick="openBoardTaskModal()" style="display:inline-flex;align-items:center;gap:8px;padding:12px 24px;background:var(--accent-purple);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;transition:var(--transition);box-shadow:var(--shadow)" onmouseover="this.style.opacity=\'0.9\'" onmouseout="this.style.opacity=\'1\'"><svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Создать задачу</button></div>';
+        }
+        h += '<div id="boardTasksList" style="margin-top:20px"><div style="text-align:center;padding:40px;color:var(--text-muted)">Загрузка...</div></div>';
         c.innerHTML = h;
+        loadBoardTasks();
+    }
+
+    function loadBoardTasks() {
+        var el = document.getElementById('boardTasksList');
+        if (!el || !db) return;
+        var ent = userEnterprise || '';
+        if (!ent && !isSuperAdmin && userRole !== 'admin_ia') { el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted)">Предприятие не задано</div>'; return; }
+
+        var query = (isSuperAdmin || userRole === 'admin_ia') ? db.collection('board_askue').get() : db.collection('board_askue').where('enterprise', '==', ent).get();
+        query.then(function(snap) {
+            _boardTasks = [];
+            snap.forEach(function(doc) {
+                var d = doc.data();
+                var tasks = d.tasks ? JSON.parse(d.tasks) : [];
+                tasks.forEach(function(t) { t._enterprise = d.enterprise; });
+                _boardTasks = _boardTasks.concat(tasks);
+            });
+            renderBoardCards(el);
+        }).catch(function(err) { el.innerHTML = '<div style="color:#ef4444;padding:20px">Ошибка: ' + err.message + '</div>'; });
+    }
+
+    function renderBoardCards(el) {
+        var isChief = (userRole === 'engineer');
+        var isEngineer = (userRole === 'engineer_askue');
+        var myRES = userRES || '';
+        var entRESList = ENTERPRISES[userEnterprise] || [];
+
+        // Filter for engineer: only assigned to them
+        var tasks = _boardTasks;
+        if (isEngineer) {
+            tasks = tasks.filter(function(t) {
+                return t.assignTo === 'all' || (Array.isArray(t.assignTo) && t.assignTo.indexOf(myRES) !== -1);
+            });
+        }
+
+        if (!tasks.length) { el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted)">Нет активных задач</div>'; return; }
+
+        // Sort by deadline
+        tasks.sort(function(a,b) { return (a.deadline||'').localeCompare(b.deadline||''); });
+
+        var html = '';
+        tasks.forEach(function(t) {
+            var completions = t.completions || {};
+            var assignedRES = t.assignTo === 'all' ? entRESList : (Array.isArray(t.assignTo) ? t.assignTo : entRESList);
+            var doneCount = 0;
+            assignedRES.forEach(function(r) { if (completions[r]) doneCount++; });
+            var totalAssigned = assignedRES.length;
+            var pct = totalAssigned > 0 ? Math.round(doneCount / totalAssigned * 100) : 0;
+            var isOverdue = t.deadline && new Date(t.deadline) < new Date() && pct < 100;
+            var borderColor = pct === 100 ? '#22c55e' : isOverdue ? '#ef4444' : 'var(--accent-purple)';
+
+            html += '<div class="overview-card" style="cursor:default;margin-bottom:16px;padding:0;border-left:4px solid ' + borderColor + ';overflow:hidden">';
+            // Header
+            html += '<div style="padding:16px 20px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">';
+            html += '<div style="flex:1;min-width:200px">';
+            html += '<h3 style="font-size:15px;font-weight:700;margin-bottom:6px">' + (t.title||'Без названия') + '</h3>';
+            if (t.basis) html += '<div style="font-size:13px;color:var(--text-secondary);margin-bottom:4px"><strong>Основание:</strong> ' + t.basis + '</div>';
+            html += '<div style="display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--text-muted);margin-top:8px">';
+            if (t.deadline) {
+                var dlParts = t.deadline.split('-');
+                html += '<span style="' + (isOverdue ? 'color:#ef4444;font-weight:600' : '') + '">Срок: ' + dlParts[2]+'.'+dlParts[1]+'.'+dlParts[0] + '</span>';
+            }
+            html += '<span>' + (t.assignTo === 'all' ? 'Все РЭС' : (Array.isArray(t.assignTo) ? t.assignTo.join(', ') : '')) + '</span>';
+            html += '</div></div>';
+            // Progress + actions
+            html += '<div style="text-align:right;min-width:120px">';
+            html += '<div style="font-size:24px;font-weight:700;color:' + (pct===100?'#22c55e':isOverdue?'#ef4444':'var(--accent-purple)') + '">' + pct + '%</div>';
+            html += '<div style="font-size:11px;color:var(--text-muted)">' + doneCount + ' из ' + totalAssigned + ' РЭС</div>';
+            if (isChief || isSuperAdmin) {
+                html += '<div style="margin-top:8px;display:flex;gap:4px;justify-content:flex-end">';
+                html += '<button onclick="openBoardTaskModal(\'' + t.id + '\')" style="padding:4px 10px;font-size:11px;background:#f59e0b;color:#fff;border:none;border-radius:6px;cursor:pointer">Ред.</button>';
+                html += '<button onclick="deleteBoardTask(\'' + t.id + '\')" style="padding:4px 10px;font-size:11px;background:#ef4444;color:#fff;border:none;border-radius:6px;cursor:pointer">Удалить</button>';
+                html += '</div>';
+            }
+            html += '</div></div>';
+
+            // Steps
+            if (t.steps && t.steps.length) {
+                html += '<div style="padding:0 20px 12px;border-top:1px solid var(--border-color);padding-top:12px">';
+                html += '<div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:6px">Порядок действий:</div>';
+                t.steps.forEach(function(s, i) {
+                    html += '<div style="font-size:13px;color:var(--text-primary);padding:3px 0;padding-left:16px;position:relative"><span style="position:absolute;left:0;color:var(--accent-purple);font-weight:600">' + (i+1) + '.</span>' + s + '</div>';
+                });
+                html += '</div>';
+            }
+
+            // Engineer: complete button
+            if (isEngineer && myRES && !completions[myRES]) {
+                html += '<div style="padding:12px 20px;border-top:1px solid var(--border-color);background:#f8fafc">';
+                html += '<button onclick="completeBoardTask(\'' + t.id + '\')" style="padding:10px 24px;background:#22c55e;color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2"><polyline points="20 6 9 17 4 12"/></svg>Выполнено</button>';
+                html += '</div>';
+            } else if (isEngineer && myRES && completions[myRES]) {
+                html += '<div style="padding:10px 20px;border-top:1px solid var(--border-color);background:#dcfce7;font-size:13px;color:#166534;font-weight:600">Выполнено ' + (completions[myRES].at ? new Date(completions[myRES].at).toLocaleDateString('ru') : '') + '</div>';
+            }
+
+            // Chief: RES status grid
+            if ((isChief || isSuperAdmin || userRole === 'admin_ia') && totalAssigned > 0) {
+                html += '<div style="padding:12px 20px;border-top:1px solid var(--border-color);background:#f8fafc">';
+                html += '<div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:8px">Статус по РЭС:</div>';
+                html += '<div style="display:flex;flex-wrap:wrap;gap:6px">';
+                assignedRES.forEach(function(r) {
+                    var done = completions[r];
+                    var bg = done ? '#dcfce7' : '#fee2e2';
+                    var clr = done ? '#166534' : '#991b1b';
+                    var icon = done ? '✓' : '—';
+                    var tip = done ? ('Выполнил: ' + (done.by||'') + ' ' + (done.at ? new Date(done.at).toLocaleDateString('ru') : '')) : 'Не выполнено';
+                    html += '<div title="' + tip + '" style="padding:4px 10px;background:' + bg + ';color:' + clr + ';font-size:11px;border-radius:6px;font-weight:600">' + icon + ' ' + r.replace(' РЭС','') + '</div>';
+                });
+                html += '</div></div>';
+            }
+            html += '</div>';
+        });
+        el.innerHTML = html;
+    }
+
+    function openBoardTaskModal(taskId) {
+        var task = null;
+        if (taskId) { _boardTasks.forEach(function(t) { if (t.id === taskId) task = t; }); }
+        var entRES = ENTERPRISES[userEnterprise] || [];
+        var overlay = document.createElement('div');
+        overlay.id = 'boardTaskOverlay';
+        overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;overflow-y:auto;padding:20px';
+        var f = '<div style="background:#fff;border-radius:16px;padding:28px 32px;max-width:560px;width:95%;box-shadow:0 20px 60px rgba(0,0,0,0.3);margin:auto;max-height:90vh;overflow-y:auto">';
+        f += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px"><h3 style="font-size:17px;font-weight:700">' + (task ? 'Редактировать задачу' : 'Новая задача') + '</h3><button onclick="closeBoardModal()" style="background:none;border:none;cursor:pointer;font-size:22px;color:var(--text-muted)">&times;</button></div>';
+        // Title
+        f += '<div style="margin-bottom:12px"><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">Название задачи</label><input type="text" id="btTitle" value="' + (task ? (task.title||'').replace(/"/g,'&quot;') : '') + '" placeholder="Краткое название" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:8px;font-size:14px;box-sizing:border-box"></div>';
+        // Basis
+        f += '<div style="margin-bottom:12px"><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">Основание</label><input type="text" id="btBasis" value="' + (task ? (task.basis||'').replace(/"/g,'&quot;') : '') + '" placeholder="НПА, приказ, распоряжение..." style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:8px;font-size:14px;box-sizing:border-box"></div>';
+        // Steps
+        var stepsVal = task && task.steps ? task.steps.join('\n') : '';
+        f += '<div style="margin-bottom:12px"><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">Порядок действий <span style="font-weight:400;color:var(--text-muted)">(каждый шаг с новой строки)</span></label><textarea id="btSteps" rows="5" placeholder="1. Первый шаг\n2. Второй шаг\n3. Третий шаг" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:8px;font-size:14px;box-sizing:border-box;resize:vertical">' + stepsVal + '</textarea></div>';
+        // Deadline
+        f += '<div style="margin-bottom:12px"><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">Срок выполнения</label><input type="date" id="btDeadline" value="' + (task ? task.deadline||'' : '') + '" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:8px;font-size:14px;box-sizing:border-box"></div>';
+        // Assign to
+        f += '<div style="margin-bottom:16px"><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">Назначить</label>';
+        var isAll = !task || task.assignTo === 'all';
+        f += '<div style="margin-bottom:8px"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px"><input type="radio" name="btAssign" value="all" ' + (isAll ? 'checked' : '') + ' onchange="toggleBoardRESList()"> Все РЭС</label></div>';
+        f += '<div style="margin-bottom:8px"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px"><input type="radio" name="btAssign" value="selected" ' + (!isAll ? 'checked' : '') + ' onchange="toggleBoardRESList()"> Выборочно</label></div>';
+        var selectedRES = task && Array.isArray(task.assignTo) ? task.assignTo : [];
+        f += '<div id="btRESList" style="display:' + (isAll ? 'none' : 'flex') + ';flex-wrap:wrap;gap:6px;padding:8px 0">';
+        entRES.forEach(function(r) {
+            var checked = selectedRES.indexOf(r) !== -1 ? 'checked' : '';
+            f += '<label style="display:flex;align-items:center;gap:4px;padding:6px 10px;background:var(--bg-hover);border-radius:6px;font-size:12px;cursor:pointer"><input type="checkbox" class="btResCheck" value="' + r + '" ' + checked + '>' + r.replace(' РЭС','') + '</label>';
+        });
+        f += '</div></div>';
+        f += '<div style="display:flex;gap:10px;justify-content:flex-end">';
+        f += '<button onclick="closeBoardModal()" style="padding:10px 20px;background:#f1f5f9;color:var(--text-secondary);border:none;border-radius:8px;font-size:14px;cursor:pointer;font-weight:600">Отмена</button>';
+        f += '<button onclick="saveBoardTask(\'' + (taskId||'') + '\')" style="padding:10px 20px;background:var(--accent-purple);color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-weight:600">' + (task ? 'Сохранить' : 'Создать') + '</button>';
+        f += '</div></div>';
+        overlay.innerHTML = f;
+        document.body.appendChild(overlay);
+    }
+
+    function closeBoardModal() { var o = document.getElementById('boardTaskOverlay'); if (o) o.remove(); }
+
+    function toggleBoardRESList() {
+        var radios = document.querySelectorAll('input[name="btAssign"]');
+        var list = document.getElementById('btRESList');
+        if (!list) return;
+        radios.forEach(function(r) { if (r.checked && r.value === 'selected') list.style.display = 'flex'; else if (r.checked) list.style.display = 'none'; });
+    }
+
+    function saveBoardTask(editId) {
+        var title = document.getElementById('btTitle').value.trim();
+        if (!title) { toast('Введите название задачи', false); return; }
+        var basis = document.getElementById('btBasis').value.trim();
+        var stepsRaw = document.getElementById('btSteps').value.trim();
+        var steps = stepsRaw ? stepsRaw.split('\n').map(function(s) { return s.replace(/^\d+[\.\)\s]+/, '').trim(); }).filter(function(s) { return s; }) : [];
+        var deadline = document.getElementById('btDeadline').value;
+        var assignAll = document.querySelector('input[name="btAssign"]:checked');
+        var assignTo = 'all';
+        if (assignAll && assignAll.value === 'selected') {
+            var checks = document.querySelectorAll('.btResCheck:checked');
+            var sel = []; checks.forEach(function(c) { sel.push(c.value); });
+            if (!sel.length) { toast('Выберите хотя бы один РЭС', false); return; }
+            assignTo = sel;
+        }
+
+        var ent = userEnterprise || '';
+        if (!ent) { toast('Предприятие не задано', false); return; }
+
+        db.collection('board_askue').doc(ent).get().then(function(doc) {
+            var tasks = [];
+            if (doc.exists && doc.data().tasks) tasks = JSON.parse(doc.data().tasks);
+            if (editId) {
+                tasks.forEach(function(t) {
+                    if (t.id === editId) {
+                        t.title = title; t.basis = basis; t.steps = steps; t.deadline = deadline; t.assignTo = assignTo;
+                    }
+                });
+            } else {
+                tasks.push({
+                    id: 'task_' + Date.now(),
+                    title: title, basis: basis, steps: steps, deadline: deadline, assignTo: assignTo,
+                    createdBy: currentUser ? currentUser.email : '',
+                    createdAt: new Date().toISOString(),
+                    completions: {}
+                });
+            }
+            return db.collection('board_askue').doc(ent).set({ enterprise: ent, tasks: JSON.stringify(tasks) });
+        }).then(function() {
+            closeBoardModal();
+            toast(editId ? 'Задача обновлена' : 'Задача создана', true);
+            loadBoardTasks();
+        }).catch(function(err) { toast('Ошибка: ' + err.message, false); });
+    }
+
+    function deleteBoardTask(taskId) {
+        if (!confirm('Удалить эту задачу?')) return;
+        var ent = userEnterprise || '';
+        db.collection('board_askue').doc(ent).get().then(function(doc) {
+            if (!doc.exists) return;
+            var tasks = JSON.parse(doc.data().tasks || '[]');
+            tasks = tasks.filter(function(t) { return t.id !== taskId; });
+            return db.collection('board_askue').doc(ent).set({ enterprise: ent, tasks: JSON.stringify(tasks) });
+        }).then(function() {
+            toast('Задача удалена', true);
+            loadBoardTasks();
+        }).catch(function(err) { toast('Ошибка: ' + err.message, false); });
+    }
+
+    function completeBoardTask(taskId) {
+        if (!confirm('Отметить задачу как выполненную?')) return;
+        var ent = userEnterprise || '';
+        var myRES = userRES || '';
+        if (!myRES) { toast('РЭС не задан', false); return; }
+        db.collection('board_askue').doc(ent).get().then(function(doc) {
+            if (!doc.exists) return;
+            var tasks = JSON.parse(doc.data().tasks || '[]');
+            tasks.forEach(function(t) {
+                if (t.id === taskId) {
+                    if (!t.completions) t.completions = {};
+                    t.completions[myRES] = { by: currentUser ? currentUser.email : '', at: new Date().toISOString() };
+                }
+            });
+            return db.collection('board_askue').doc(ent).set({ enterprise: ent, tasks: JSON.stringify(tasks) });
+        }).then(function() {
+            toast('Задача отмечена как выполненная', true);
+            loadBoardTasks();
+        }).catch(function(err) { toast('Ошибка: ' + err.message, false); });
     }
 
     // ========== ADMIN PANEL (SuperAdmin only) ==========
