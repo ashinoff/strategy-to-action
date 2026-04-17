@@ -7729,6 +7729,8 @@
         var settings = JSON.parse(localStorage.getItem('urru_user') || '{}');
         document.getElementById('settingsName').value = settings.name || '';
         var roleEl = document.getElementById('settingsRole');
+        var entWrap = document.getElementById('settingsEnterpriseWrap');
+        var resWrap = document.getElementById('settingsRESWrap');
         if (roleEl) { roleEl.value = settings.role || userRole || 'nachalnik_urru'; onSettingsRoleChange(); }
         setTimeout(function() {
             var entEl = document.getElementById('settingsEnterprise');
@@ -7738,6 +7740,32 @@
                 if (resEl) resEl.value = settings.res || userRES || '';
             }, 50);
         }, 50);
+        // Lock role/enterprise/RES for non-admin users
+        if (!isSuperAdmin) {
+            if (roleEl) { roleEl.disabled = true; roleEl.style.opacity='0.6'; roleEl.style.cursor='not-allowed'; }
+            var entEl = document.getElementById('settingsEnterprise');
+            var resEl = document.getElementById('settingsRES');
+            if (entEl) { entEl.disabled = true; entEl.style.opacity='0.6'; entEl.style.cursor='not-allowed'; }
+            if (resEl) { resEl.disabled = true; resEl.style.opacity='0.6'; resEl.style.cursor='not-allowed'; }
+            // Show hint
+            var hintId = 'settingsAdminHint';
+            if (!document.getElementById(hintId)) {
+                var hint = document.createElement('div');
+                hint.id = hintId;
+                hint.style.cssText = 'margin-top:12px;padding:10px 14px;background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;font-size:12px;color:#92400e';
+                hint.innerHTML = '<strong>Роль, предприятие и РЭС</strong> может изменить только администратор через админ-панель.';
+                var section = roleEl.closest('.settings-section');
+                if (section) section.appendChild(hint);
+            }
+        } else {
+            if (roleEl) { roleEl.disabled = false; roleEl.style.opacity=''; roleEl.style.cursor=''; }
+            var entEl = document.getElementById('settingsEnterprise');
+            var resEl = document.getElementById('settingsRES');
+            if (entEl) { entEl.disabled = false; entEl.style.opacity=''; entEl.style.cursor=''; }
+            if (resEl) { resEl.disabled = false; resEl.style.opacity=''; resEl.style.cursor=''; }
+            var oldHint = document.getElementById('settingsAdminHint');
+            if (oldHint) oldHint.remove();
+        }
         document.getElementById('settingsModal').classList.add('show');
     };
     
@@ -7746,9 +7774,21 @@
     };
     
     window.saveSettings = function() {
-        var rv = document.getElementById('settingsRole') ? document.getElementById('settingsRole').value : 'nachalnik_urru';
-        var ev = document.getElementById('settingsEnterprise') ? document.getElementById('settingsEnterprise').value : '';
-        var resv = document.getElementById('settingsRES') ? document.getElementById('settingsRES').value : '';
+        var currentSettings = JSON.parse(localStorage.getItem('urru_user') || '{}');
+        var rv, ev, resv;
+        
+        if (isSuperAdmin) {
+            // Admin can change everything
+            rv = document.getElementById('settingsRole') ? document.getElementById('settingsRole').value : 'nachalnik_urru';
+            ev = document.getElementById('settingsEnterprise') ? document.getElementById('settingsEnterprise').value : '';
+            resv = document.getElementById('settingsRES') ? document.getElementById('settingsRES').value : '';
+        } else {
+            // Non-admin: keep current role/enterprise/RES from Firestore
+            rv = currentSettings.role || userRole || 'nachalnik_urru';
+            ev = currentSettings.enterprise || userEnterprise || '';
+            resv = currentSettings.res || userRES || '';
+        }
+        
         userRole=rv; userEnterprise=ev; userRES=resv;
         var settings = {
             name: document.getElementById('settingsName').value.trim(),
@@ -7757,6 +7797,14 @@
         };
         
         localStorage.setItem('urru_user', JSON.stringify(settings));
+        
+        // Sync name to Firestore
+        if (currentUser && db && !isGuest) {
+            db.collection('users').doc(currentUser.uid).update({
+                name: settings.name
+            }).catch(function(){});
+        }
+        
         loadUserSettings();
         closeSettings();
         toast('Настройки сохранены', true);
@@ -8020,7 +8068,22 @@
                     var s=JSON.parse(localStorage.getItem('urru_user')||'{}');
                     s.role=d.role; s.enterprise=d.enterprise||''; s.res=d.res||'';
                     s.position=ROLE_LABELS[d.role]||d.role; s.unit=d.res||d.enterprise||'Все РЭС';
+                    if (d.name) s.name=d.name;
                     localStorage.setItem('urru_user',JSON.stringify(s));
+                } else if (!doc.exists) {
+                    // Auto-create Firestore doc so admin can see this user
+                    var s=JSON.parse(localStorage.getItem('urru_user')||'{}');
+                    var autoData = {
+                        email: user.email||'',
+                        role: s.role||userRole||'nachalnik_urru',
+                        enterprise: s.enterprise||userEnterprise||null,
+                        res: s.res||userRES||null,
+                        name: s.name||'',
+                        position: ROLE_LABELS[s.role||userRole]||(s.role||userRole)||'',
+                        unit: s.res||s.enterprise||userRES||userEnterprise||'Все РЭС',
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    db.collection('users').doc(user.uid).set(autoData, {merge:true});
                 }
                 loadFromFirestore(user.uid);
             }).catch(function(){loadFromFirestore(user.uid);});
