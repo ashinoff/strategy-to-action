@@ -9271,20 +9271,15 @@
         var isEngineer = (userRole === 'engineer_askue');
         var myRES = userRES || '';
         var myEnt = userEnterprise || '';
-
-        // Filter for engineer: only assigned to them
         var tasks = _boardTasks;
         if (isEngineer) {
             tasks = tasks.filter(function(t) {
                 return t.assignTo === 'all' || (Array.isArray(t.assignTo) && t.assignTo.indexOf(myRES) !== -1);
             });
         }
-
         if (!tasks.length) { el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted)">Нет активных задач</div>'; return; }
-
-        // Sort by deadline
         tasks.sort(function(a,b) { return (a.deadline||'').localeCompare(b.deadline||''); });
-
+        var today = new Date(); today.setHours(0,0,0,0);
         var html = '';
         tasks.forEach(function(t) {
             var taskEnt = t._enterprise || myEnt;
@@ -9295,68 +9290,90 @@
             assignedRES.forEach(function(r) { if (completions[r]) doneCount++; });
             var totalAssigned = assignedRES.length;
             var pct = totalAssigned > 0 ? Math.round(doneCount / totalAssigned * 100) : 0;
-            var isOverdue = t.deadline && new Date(t.deadline) < new Date() && pct < 100;
-            var borderColor = pct === 100 ? '#22c55e' : isOverdue ? '#ef4444' : 'var(--accent-purple)';
-
-            html += '<div class="overview-card" style="cursor:default;margin-bottom:16px;padding:0;border-left:4px solid ' + borderColor + ';overflow:hidden">';
+            var dlDate = t.deadline ? new Date(t.deadline) : null;
+            var isOverdue = dlDate && dlDate < today && pct < 100;
+            var isDone = pct === 100;
+            var daysLeft = dlDate ? Math.ceil((dlDate - today) / 86400000) : null;
+            var dlLabel = '', dlColor = '';
+            if (isDone) { dlLabel = 'Выполнено'; dlColor = '#22c55e'; }
+            else if (isOverdue) { dlLabel = 'Просрочено на ' + Math.abs(daysLeft) + ' дн.'; dlColor = '#ef4444'; }
+            else if (daysLeft !== null && daysLeft <= 3) { dlLabel = 'Осталось ' + daysLeft + ' дн.'; dlColor = '#f59e0b'; }
+            else if (daysLeft !== null) { dlLabel = 'Осталось ' + daysLeft + ' дн.'; dlColor = 'var(--text-muted)'; }
+            var barColor = isDone ? '#22c55e' : isOverdue ? '#ef4444' : 'var(--accent-purple)';
+            html += '<div class="overview-card" style="cursor:default;margin-bottom:20px;padding:0;overflow:hidden">';
+            // Progress bar top
+            html += '<div style="height:6px;background:#e2e8f0"><div style="height:100%;width:' + pct + '%;background:' + barColor + ';transition:width 0.5s ease;border-radius:0 3px 3px 0"></div></div>';
             // Header
-            html += '<div style="padding:16px 20px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">';
+            html += '<div style="padding:16px 20px 12px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">';
             html += '<div style="flex:1;min-width:200px">';
-            html += '<h3 style="font-size:15px;font-weight:700;margin-bottom:6px">' + (t.title||'Без названия') + '</h3>';
-            if (t.basis) html += '<div style="font-size:13px;color:var(--text-secondary);margin-bottom:4px"><strong>Основание:</strong> ' + t.basis + '</div>';
-            html += '<div style="display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--text-muted);margin-top:8px">';
+            html += '<h3 style="font-size:16px;font-weight:700;margin-bottom:4px">' + (t.title||'Без названия') + '</h3>';
+            if (t.basis) html += '<div style="font-size:13px;color:var(--text-secondary)"><span style="font-weight:600">Основание:</span> ' + t.basis + '</div>';
+            html += '</div>';
+            html += '<div style="text-align:center;min-width:80px">';
+            html += '<div style="width:56px;height:56px;border-radius:50%;border:4px solid ' + barColor + ';display:flex;align-items:center;justify-content:center;margin:0 auto 4px">';
+            html += '<div style="font-size:16px;font-weight:800;color:' + barColor + '">' + pct + '%</div></div>';
+            html += '<div style="font-size:10px;color:var(--text-muted)">' + doneCount + '/' + totalAssigned + ' РЭС</div></div></div>';
+            // Deadline bar
+            html += '<div style="padding:8px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:' + (isDone?'#f0fdf4':isOverdue?'#fef2f2':'#f8fafc') + ';border-top:1px solid var(--border-color);border-bottom:1px solid var(--border-color)">';
             if (t.deadline) {
                 var dlParts = t.deadline.split('-');
-                html += '<span style="' + (isOverdue ? 'color:#ef4444;font-weight:600' : '') + '">Срок: ' + dlParts[2]+'.'+dlParts[1]+'.'+dlParts[0] + '</span>';
-            }
-            html += '<span>' + (t.assignTo === 'all' ? 'Все РЭС' : (Array.isArray(t.assignTo) ? t.assignTo.join(', ') : '')) + '</span>';
-            html += '</div></div>';
-            // Progress + actions
-            html += '<div style="text-align:right;min-width:120px">';
-            html += '<div style="font-size:24px;font-weight:700;color:' + (pct===100?'#22c55e':isOverdue?'#ef4444':'var(--accent-purple)') + '">' + pct + '%</div>';
-            html += '<div style="font-size:11px;color:var(--text-muted)">' + doneCount + ' из ' + totalAssigned + ' РЭС</div>';
-            if (isChief || isSuperAdmin) {
-                html += '<div style="margin-top:8px;display:flex;gap:4px;justify-content:flex-end">';
-                html += '<button onclick="openBoardTaskModal(\'' + t.id + '\')" style="padding:4px 10px;font-size:11px;background:#f59e0b;color:#fff;border:none;border-radius:6px;cursor:pointer">Ред.</button>';
-                html += '<button onclick="deleteBoardTask(\'' + t.id + '\')" style="padding:4px 10px;font-size:11px;background:#ef4444;color:#fff;border:none;border-radius:6px;cursor:pointer">Удалить</button>';
+                html += '<div style="display:flex;align-items:center;gap:6px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:' + barColor + ';fill:none;stroke-width:2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
+                html += '<span style="font-size:14px;font-weight:700;color:' + barColor + '">' + dlParts[2]+'.'+dlParts[1]+'.'+dlParts[0] + '</span>';
+                if (dlLabel) html += '<span style="font-size:12px;color:' + dlColor + ';font-weight:600;padding:2px 8px;background:' + (isDone?'#dcfce7':isOverdue?'#fee2e2':'#fff') + ';border-radius:10px">' + dlLabel + '</span>';
                 html += '</div>';
             }
-            html += '</div></div>';
-
+            html += '<div style="margin-left:auto;font-size:11px;color:var(--text-muted)">' + (t.assignTo === 'all' ? 'Все РЭС' : (Array.isArray(t.assignTo) ? t.assignTo.length + ' РЭС' : '')) + '</div>';
+            if (isChief || isSuperAdmin) {
+                html += '<div style="display:flex;gap:4px">';
+                html += '<button onclick="openBoardTaskModal(\'' + t.id + '\')" style="padding:4px 12px;font-size:11px;background:#f59e0b;color:#fff;border:none;border-radius:6px;cursor:pointer">Ред.</button>';
+                html += '<button onclick="deleteBoardTask(\'' + t.id + '\')" style="padding:4px 12px;font-size:11px;background:#ef4444;color:#fff;border:none;border-radius:6px;cursor:pointer">Удалить</button>';
+                html += '</div>';
+            }
+            html += '</div>';
             // Steps
             if (t.steps && t.steps.length) {
-                html += '<div style="padding:0 20px 12px;border-top:1px solid var(--border-color);padding-top:12px">';
+                html += '<div style="padding:12px 20px">';
                 html += '<div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:6px">Порядок действий:</div>';
                 t.steps.forEach(function(s, i) {
-                    html += '<div style="font-size:13px;color:var(--text-primary);padding:3px 0;padding-left:16px;position:relative"><span style="position:absolute;left:0;color:var(--accent-purple);font-weight:600">' + (i+1) + '.</span>' + s + '</div>';
+                    html += '<div style="font-size:13px;color:var(--text-primary);padding:4px 0 4px 22px;position:relative;border-left:2px solid var(--accent-purple);margin-left:6px"><span style="position:absolute;left:-8px;top:3px;width:14px;height:14px;background:var(--accent-purple);color:#fff;border-radius:50%;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center">' + (i+1) + '</span><span style="margin-left:8px">' + s + '</span></div>';
                 });
                 html += '</div>';
             }
-
             // Engineer: complete button
             if (isEngineer && myRES && !completions[myRES]) {
                 html += '<div style="padding:12px 20px;border-top:1px solid var(--border-color);background:#f8fafc">';
-                html += '<button onclick="completeBoardTask(\'' + t.id + '\')" style="padding:10px 24px;background:#22c55e;color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2"><polyline points="20 6 9 17 4 12"/></svg>Выполнено</button>';
+                html += '<button onclick="completeBoardTask(\'' + t.id + '\')" style="padding:10px 24px;background:#22c55e;color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:var(--shadow)"><svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.5"><polyline points="20 6 9 17 4 12"/></svg>Отметить выполнено</button>';
                 html += '</div>';
             } else if (isEngineer && myRES && completions[myRES]) {
-                html += '<div style="padding:10px 20px;border-top:1px solid var(--border-color);background:#dcfce7;font-size:13px;color:#166534;font-weight:600">Выполнено ' + (completions[myRES].at ? new Date(completions[myRES].at).toLocaleDateString('ru') : '') + '</div>';
+                html += '<div style="padding:10px 20px;border-top:1px solid var(--border-color);background:#dcfce7;font-size:13px;color:#166534;display:flex;align-items:center;gap:6px"><svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:#166534;fill:none;stroke-width:2.5"><polyline points="20 6 9 17 4 12"/></svg><strong>Выполнено</strong> ' + (completions[myRES].at ? new Date(completions[myRES].at).toLocaleDateString('ru') : '') + '</div>';
             }
-
-            // Chief: RES status grid
+            // Chief: detailed RES table
             if ((isChief || isSuperAdmin || userRole === 'admin_ia') && totalAssigned > 0) {
-                html += '<div style="padding:12px 20px;border-top:1px solid var(--border-color);background:#f8fafc">';
-                html += '<div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:8px">Статус по РЭС:</div>';
-                html += '<div style="display:flex;flex-wrap:wrap;gap:6px">';
+                html += '<div style="padding:12px 20px;border-top:1px solid var(--border-color)">';
+                html += '<div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:8px">Контроль выполнения:</div>';
+                html += '<table style="width:100%;border-collapse:collapse;font-size:12px">';
+                html += '<tr style="border-bottom:1px solid var(--border-color)"><th style="text-align:left;padding:6px 8px;color:var(--text-muted);font-weight:600">РЭС</th><th style="text-align:center;padding:6px;color:var(--text-muted);font-weight:600;width:70px">Статус</th><th style="text-align:left;padding:6px;color:var(--text-muted);font-weight:600">Исполнитель</th><th style="text-align:right;padding:6px;color:var(--text-muted);font-weight:600;width:90px">Дата</th></tr>';
                 assignedRES.forEach(function(r) {
                     var done = completions[r];
-                    var bg = done ? '#dcfce7' : '#fee2e2';
-                    var clr = done ? '#166534' : '#991b1b';
-                    var icon = done ? '✓' : '—';
-                    var tip = done ? ('Выполнил: ' + (done.by||'') + ' ' + (done.at ? new Date(done.at).toLocaleDateString('ru') : '')) : 'Не выполнено';
-                    html += '<div title="' + tip + '" style="padding:4px 10px;background:' + bg + ';color:' + clr + ';font-size:11px;border-radius:6px;font-weight:600">' + icon + ' ' + r.replace(' РЭС','') + '</div>';
+                    html += '<tr style="border-bottom:1px solid var(--border-color)">';
+                    html += '<td style="padding:6px 8px;font-weight:500">' + r + '</td>';
+                    if (done) {
+                        html += '<td style="text-align:center;padding:6px"><span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;background:#dcfce7;border-radius:50%"><svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:#16a34a;fill:none;stroke-width:3"><polyline points="20 6 9 17 4 12"/></svg></span></td>';
+                        html += '<td style="padding:6px;color:var(--text-secondary);font-size:11px">' + (done.by ? done.by.split('@')[0] : '') + '</td>';
+                        html += '<td style="padding:6px;text-align:right;color:#16a34a;font-weight:600;font-size:11px">' + (done.at ? new Date(done.at).toLocaleDateString('ru') : '') + '</td>';
+                    } else {
+                        html += '<td style="text-align:center;padding:6px"><span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;background:#fee2e2;border-radius:50%"><svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:#dc2626;fill:none;stroke-width:3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span></td>';
+                        html += '<td style="padding:6px;color:var(--text-muted);font-size:11px">—</td>';
+                        html += '<td style="padding:6px;text-align:right;color:#ef4444;font-size:11px;font-weight:600">' + (isOverdue ? 'просрочено' : 'ожидание') + '</td>';
+                    }
+                    html += '</tr>';
                 });
-                html += '</div></div>';
+                html += '</table></div>';
             }
+            // Footer
+            html += '<div style="padding:6px 20px;background:#f8fafc;border-top:1px solid var(--border-color);font-size:11px;color:var(--text-muted);display:flex;justify-content:space-between">';
+            html += '<span>Создал: ' + (t.createdBy ? t.createdBy.split('@')[0] : '') + '</span>';
+            html += '<span>' + (t.createdAt ? new Date(t.createdAt).toLocaleDateString('ru') : '') + '</span></div>';
             html += '</div>';
         });
         el.innerHTML = html;
