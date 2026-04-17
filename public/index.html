@@ -8699,46 +8699,71 @@
         
         showAdminResult('Создаю учётку...', true);
         
+        var userData = {
+            role: role,
+            enterprise: ent || null,
+            res: res || null,
+            email: email,
+            name: name || '',
+            position: ROLE_LABELS[role] || role,
+            unit: res || ent || 'Все РЭС',
+            createdBy: currentUser.email,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        
         // Use secondary Firebase app to create user without logging out admin
         var secAuth = secondaryApp.auth();
         secAuth.createUserWithEmailAndPassword(email, pass)
             .then(function(cred) {
                 var uid = cred.user.uid;
-                // Save role data to Firestore
-                var userData = {
-                    role: role,
-                    enterprise: ent || null,
-                    res: res || null,
-                    email: email,
-                    name: name || '',
-                    position: ROLE_LABELS[role] || role,
-                    unit: res || ent || 'Все РЭС',
-                    createdBy: currentUser.email,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                };
                 return db.collection('users').doc(uid).set(userData, { merge: true }).then(function() {
-                    // Sign out from secondary app
                     return secAuth.signOut();
                 }).then(function() {
                     var roleLabel = ROLE_LABELS[role] || role;
                     var unitLabel = res || ent || 'Все РЭС';
                     showAdminResult('✅ Учётка создана: ' + email + ' (' + roleLabel + ', ' + unitLabel + ')', true);
-                    // Clear form
                     document.getElementById('adminNewEmail').value = '';
                     document.getElementById('adminNewPass').value = '';
                     document.getElementById('adminNewName').value = '';
-                    // Refresh users list
                     setTimeout(loadAdminUsersList, 500);
                 });
             })
             .catch(function(err) {
-                var msgs = {
-                    'auth/email-already-in-use': 'Этот email уже зарегистрирован',
-                    'auth/invalid-email': 'Неверный формат email',
-                    'auth/weak-password': 'Слишком простой пароль'
-                };
-                showAdminResult('❌ ' + (msgs[err.code] || err.message), false);
-                secAuth.signOut().catch(function(){});
+                if (err.code === 'auth/email-already-in-use') {
+                    // Auth account exists (e.g. after deletion from Firestore) — try to sign in and restore
+                    showAdminResult('Аккаунт существует в Firebase, восстанавливаю...', true);
+                    secAuth.signInWithEmailAndPassword(email, pass)
+                        .then(function(cred) {
+                            var uid = cred.user.uid;
+                            return db.collection('users').doc(uid).set(userData, { merge: true }).then(function() {
+                                return secAuth.signOut();
+                            }).then(function() {
+                                var roleLabel = ROLE_LABELS[role] || role;
+                                var unitLabel = res || ent || 'Все РЭС';
+                                showAdminResult('✅ Учётка восстановлена: ' + email + ' (' + roleLabel + ', ' + unitLabel + ')', true);
+                                document.getElementById('adminNewEmail').value = '';
+                                document.getElementById('adminNewPass').value = '';
+                                document.getElementById('adminNewName').value = '';
+                                setTimeout(loadAdminUsersList, 500);
+                            });
+                        })
+                        .catch(function(err2) {
+                            // Password doesn't match — send reset email
+                            auth.sendPasswordResetEmail(email).then(function() {
+                                showAdminResult('❌ Аккаунт ' + email + ' уже существует с другим паролем. Письмо для сброса пароля отправлено. После сброса повторите создание.', false);
+                            }).catch(function() {
+                                showAdminResult('❌ Аккаунт ' + email + ' уже существует с другим паролем. Используйте тот же пароль или сбросьте через кнопку.', false);
+                            });
+                            secAuth.signOut().catch(function(){});
+                        });
+                } else {
+                    var msgs = {
+                        'auth/invalid-email': 'Неверный формат email',
+                        'auth/weak-password': 'Слишком простой пароль'
+                    };
+                    showAdminResult('❌ ' + (msgs[err.code] || err.message), false);
+                    secAuth.signOut().catch(function(){});
+                }
             });
     }
     
@@ -8830,13 +8855,21 @@
         // Build modal
         var overlay = document.createElement('div');
         overlay.id = 'adminEditOverlay';
-        overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.2s ease';
-        var card = '<div style="background:#fff;border-radius:16px;padding:28px 32px;max-width:440px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3)">';
+        overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.2s ease;overflow-y:auto;padding:20px';
+        var card = '<div style="background:#fff;border-radius:16px;padding:28px 32px;max-width:480px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);margin:auto">';
         card += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px"><h3 style="font-size:17px;font-weight:700;color:var(--text-primary)">Редактирование учётки</h3><button onclick="closeAdminEdit()" style="background:none;border:none;cursor:pointer;font-size:22px;color:var(--text-muted);line-height:1">&times;</button></div>';
-        card += '<div style="margin-bottom:16px;padding:12px;background:#f1f5f9;border-radius:8px;font-size:13px;color:var(--text-secondary)"><strong>Email:</strong> ' + email + '<br><strong>ФИО:</strong> ' + (name||'—') + '</div>';
-        card += '<div style="margin-bottom:12px"><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">Новое ФИО</label><input type="text" id="editUserName" value="' + (name||'').replace(/"/g,'&quot;') + '" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:8px;font-size:14px;box-sizing:border-box"></div>';
-        card += '<div style="margin-bottom:12px"><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">Новый пароль <span style="font-weight:400;color:var(--text-muted)">(оставьте пустым, если не менять)</span></label><div style="position:relative"><input type="password" id="editUserPass" placeholder="мин. 6 символов" style="width:100%;padding:10px 40px 10px 12px;border:1px solid var(--border-color);border-radius:8px;font-size:14px;box-sizing:border-box"><button type="button" onclick="togglePass(\'editUserPass\', this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:4px;display:flex;color:#94a3b8;outline:none" title="Показать пароль"><svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>';
-        card += '<div style="margin-bottom:16px"><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">Роль</label><select id="editUserRole" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:8px;font-size:14px;background:#fff"><option value="nachalnik_urru">Начальник УРРУ</option><option value="zam_riru">Зам РИРУ</option><option value="admin_ia">Админ ИА</option></select></div>';
+        card += '<div style="margin-bottom:16px;padding:12px;background:#f1f5f9;border-radius:8px;font-size:13px;color:var(--text-secondary)"><strong>Email:</strong> ' + email + '</div>';
+        // ФИО
+        card += '<div style="margin-bottom:12px"><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">ФИО</label><input type="text" id="editUserName" value="' + (name||'').replace(/"/g,'&quot;') + '" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:8px;font-size:14px;box-sizing:border-box"></div>';
+        // Пароль
+        card += '<div style="margin-bottom:12px"><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">Новый пароль <span style="font-weight:400;color:var(--text-muted)">(пустое = не менять)</span></label><div style="position:relative"><input type="password" id="editUserPass" placeholder="мин. 6 символов" style="width:100%;padding:10px 40px 10px 12px;border:1px solid var(--border-color);border-radius:8px;font-size:14px;box-sizing:border-box"><button type="button" onclick="togglePass(\'editUserPass\', this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:4px;display:flex;color:#94a3b8;outline:none" title="Показать пароль"><svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>';
+        // Роль
+        card += '<div style="margin-bottom:12px"><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">Роль</label><select id="editUserRole" onchange="onEditRoleChange()" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:8px;font-size:14px;background:#fff"><option value="nachalnik_urru">Начальник УРРУ</option><option value="zam_riru">Зам РИРУ</option><option value="admin_ia">Админ ИА</option></select></div>';
+        // Предприятие
+        card += '<div id="editEntWrap" style="margin-bottom:12px"><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">Предприятие</label><select id="editUserEnt" onchange="onEditEntChange()" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:8px;font-size:14px;background:#fff"><option value="">— Выберите —</option></select></div>';
+        // РЭС
+        card += '<div id="editRESWrap" style="margin-bottom:16px"><label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)">РЭС</label><select id="editUserRES" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:8px;font-size:14px;background:#fff"><option value="">— Выберите —</option></select></div>';
+        // Result
         card += '<div id="adminEditResult" style="display:none;padding:10px;border-radius:8px;font-size:13px;margin-bottom:12px"></div>';
         card += '<div style="display:flex;gap:10px;justify-content:flex-end">';
         card += '<button onclick="closeAdminEdit()" style="padding:10px 20px;background:#f1f5f9;color:var(--text-secondary);border:none;border-radius:8px;font-size:14px;cursor:pointer;font-weight:600">Отмена</button>';
@@ -8845,14 +8878,45 @@
         overlay.innerHTML = card;
         document.body.appendChild(overlay);
         
-        // Load current user data and set role
+        // Populate enterprise select
+        populateEnterpriseSelect('editUserEnt');
+        
+        // Load current user data and set all fields
         db.collection('users').doc(uid).get().then(function(doc) {
             if (doc.exists) {
                 var d = doc.data();
                 var roleEl = document.getElementById('editUserRole');
                 if (roleEl && d.role) roleEl.value = d.role;
+                var entEl = document.getElementById('editUserEnt');
+                if (entEl && d.enterprise) entEl.value = d.enterprise;
+                // Populate RES based on enterprise
+                if (d.enterprise && d.role === 'nachalnik_urru') {
+                    populateRESSelect('editUserRES', d.enterprise);
+                    setTimeout(function() {
+                        var resEl = document.getElementById('editUserRES');
+                        if (resEl && d.res) resEl.value = d.res;
+                    }, 100);
+                }
+                onEditRoleChange();
             }
         });
+    }
+
+    function onEditRoleChange() {
+        var r = document.getElementById('editUserRole');
+        if (!r) return;
+        var ew = document.getElementById('editEntWrap'), rw = document.getElementById('editRESWrap');
+        if (r.value === 'admin_ia') { ew.style.display='none'; rw.style.display='none'; }
+        else if (r.value === 'zam_riru') { ew.style.display=''; rw.style.display='none'; }
+        else { ew.style.display=''; rw.style.display=''; }
+    }
+
+    function onEditEntChange() {
+        var r = document.getElementById('editUserRole'), e = document.getElementById('editUserEnt');
+        if (r && r.value === 'nachalnik_urru' && e && e.value) {
+            document.getElementById('editRESWrap').style.display = '';
+            populateRESSelect('editUserRES', e.value);
+        }
     }
 
     function closeAdminEdit() {
@@ -8864,6 +8928,8 @@
         var newName = document.getElementById('editUserName').value.trim();
         var newPass = document.getElementById('editUserPass').value;
         var newRole = document.getElementById('editUserRole').value;
+        var newEnt = document.getElementById('editUserEnt') ? document.getElementById('editUserEnt').value : '';
+        var newRES = document.getElementById('editUserRES') ? document.getElementById('editUserRES').value : '';
         var resultEl = document.getElementById('adminEditResult');
         
         function showEditResult(msg, ok) {
@@ -8874,15 +8940,24 @@
             resultEl.textContent = msg;
         }
         
+        // Validation
+        if ((newRole==='zam_riru'||newRole==='nachalnik_urru') && !newEnt) { showEditResult('Выберите предприятие', false); return; }
+        if (newRole==='nachalnik_urru' && !newRES) { showEditResult('Выберите РЭС', false); return; }
+        
         // Update Firestore data
-        var updates = { role: newRole, name: newName, position: ROLE_LABELS[newRole] || newRole };
+        var updates = {
+            role: newRole,
+            name: newName,
+            position: ROLE_LABELS[newRole] || newRole,
+            enterprise: (newRole === 'admin_ia') ? null : (newEnt || null),
+            res: (newRole === 'nachalnik_urru') ? (newRES || null) : null,
+            unit: newRES || newEnt || 'Все РЭС'
+        };
         
         showEditResult('Сохраняю...', true);
         
         db.collection('users').doc(uid).update(updates).then(function() {
             if (newPass && newPass.length >= 6) {
-                // Try to update password via secondary app
-                // Since we don't have the user's current password, send reset email instead
                 return auth.sendPasswordResetEmail(email).then(function() {
                     showEditResult('✅ Данные обновлены. Письмо для смены пароля отправлено на ' + email, true);
                 });
