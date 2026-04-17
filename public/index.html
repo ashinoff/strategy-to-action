@@ -7982,12 +7982,12 @@
         var ew = document.getElementById('settingsEnterpriseWrap'), rw = document.getElementById('settingsRESWrap');
         if (!ew||!rw) return;
         ew.style.display = r==='admin_ia' ? 'none' : '';
-        rw.style.display = r==='nachalnik_urru' ? '' : 'none';
+        rw.style.display = (r==='nachalnik_urru'||r==='engineer_askue') ? '' : 'none';
         if (r!=='admin_ia') populateEnterpriseSelect('settingsEnterprise');
     }
     function onSettingsEnterpriseChange() {
         var r = document.getElementById('settingsRole').value, e = document.getElementById('settingsEnterprise').value;
-        if (r==='nachalnik_urru' && e) { document.getElementById('settingsRESWrap').style.display=''; populateRESSelect('settingsRES', e); }
+        if ((r==='nachalnik_urru'||r==='engineer_askue') && e) { document.getElementById('settingsRESWrap').style.display=''; populateRESSelect('settingsRES', e); }
     }
     function togglePass(inputId, btn) {
         var inp = document.getElementById(inputId);
@@ -9270,7 +9270,7 @@
         var isChief = (userRole === 'engineer');
         var isEngineer = (userRole === 'engineer_askue');
         var myRES = userRES || '';
-        var entRESList = ENTERPRISES[userEnterprise] || [];
+        var myEnt = userEnterprise || '';
 
         // Filter for engineer: only assigned to them
         var tasks = _boardTasks;
@@ -9287,6 +9287,8 @@
 
         var html = '';
         tasks.forEach(function(t) {
+            var taskEnt = t._enterprise || myEnt;
+            var entRESList = ENTERPRISES[taskEnt] || [];
             var completions = t.completions || {};
             var assignedRES = t.assignTo === 'all' ? entRESList : (Array.isArray(t.assignTo) ? t.assignTo : entRESList);
             var doneCount = 0;
@@ -9525,6 +9527,11 @@
         if (r.value === 'admin_ia') { ew.style.display='none'; rw.style.display='none'; }
         else if (r.value === 'zam_riru' || r.value === 'engineer') { ew.style.display=''; rw.style.display='none'; }
         else { ew.style.display=''; rw.style.display=''; }
+        // Auto-populate RES if enterprise already selected
+        if (r.value === 'nachalnik_urru' || r.value === 'engineer_askue') {
+            var e = document.getElementById('adminNewEnt');
+            if (e && e.value) populateRESSelect('adminNewRES', e.value);
+        }
     }
     
     function onAdminEntChange() {
