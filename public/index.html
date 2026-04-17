@@ -9810,7 +9810,7 @@
             name: newName,
             position: ROLE_LABELS[newRole] || newRole,
             enterprise: (newRole === 'admin_ia') ? null : (newEnt || null),
-            res: (newRole === 'nachalnik_urru') ? (newRES || null) : null,
+            res: (newRole === 'nachalnik_urru' || newRole === 'engineer_askue') ? (newRES || null) : null,
             unit: newRES || newEnt || 'Все РЭС'
         };
         
