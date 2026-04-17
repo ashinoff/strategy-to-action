@@ -8944,10 +8944,21 @@
                     merged.general = mergeBlock(existingGeneral, newData.general);
                     merged.spodes = mergeBlock(existingSpodes, newData.spodes);
                 } else {
-                    // No new dates — just update totals
+                    // No new dates — still update Всего and Опрос
                     merged.dates = existingDates;
-                    merged.general = existingGeneral || newData.general;
-                    merged.spodes = existingSpodes || newData.spodes;
+                    function updateTotalsOnly(existBlock, newBlock) {
+                        if (!existBlock || !newBlock) return existBlock || newBlock;
+                        newBlock.rows.forEach(function(nr) {
+                            existBlock.rows.forEach(function(er) {
+                                if (er.res === nr.res) { er.total = nr.total; er.polled = nr.polled; }
+                            });
+                        });
+                        existBlock.totals.total = 0; existBlock.totals.polled = 0;
+                        existBlock.rows.forEach(function(r) { existBlock.totals.total += r.total; existBlock.totals.polled += r.polled; });
+                        return existBlock;
+                    }
+                    merged.general = updateTotalsOnly(existingGeneral, newData.general);
+                    merged.spodes = updateTotalsOnly(existingSpodes, newData.spodes);
                 }
             }
 
@@ -8963,7 +8974,7 @@
                 if (newDatesCount > 0) {
                     statusEl.textContent = '✅ Добавлено ' + newDatesCount + ' новых дат (' + entName + ', всего ' + merged.dates.length + ' дат)';
                 } else {
-                    statusEl.textContent = '✅ Данные актуальны, новых дат не найдено (' + entName + ')';
+                    statusEl.textContent = '✅ Данные обновлены (Всего/Опрос), новых дат не найдено (' + entName + ')';
                 }
                 statusEl.style.color = '#16a34a';
                 loadOprosFromFirestore();
@@ -9025,7 +9036,7 @@
         var mode = _oprosViewMode || 'pct';
         var manage = _oprosManageDates;
         var safeEnt = (enterprise||'').replace(/"/g,'&quot;');
-        var h = '<div style="padding:16px 20px"><h4 style="font-size:14px;font-weight:600;color:var(--accent-purple);margin-bottom:12px">' + title + ' <span style="font-weight:400;font-size:12px;color:var(--text-muted)">(' + (mode==='pct' ? '%' : 'без опроса') + ')</span></h4>';
+        var h = '<div style="padding:16px 20px"><h4 style="font-size:14px;font-weight:600;color:var(--accent-purple);margin-bottom:12px">' + title + ' <span style="font-weight:400;font-size:12px;color:var(--text-muted)">(' + (mode==='pct' ? '%' : 'шт') + ')</span></h4>';
         h += '<div class="opros-scroll-wrap" style="overflow-x:auto;max-width:100%"><table style="width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap">';
         // Checkbox row for date management
         if (manage) {
